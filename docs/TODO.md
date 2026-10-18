@@ -16,8 +16,6 @@ first second implementation. The TCK runs in every CI build (`uom-tck`), so the 
 
 ## Release readiness
 
-No version has been released, signed, tagged or uploaded. The release is prepared and is the owner's action
-([RELEASING.md](RELEASING.md)). Before the first release:
-
-- Generate a Central Portal user token and put it into `~/.m2/settings.xml` under the server id `central` (never into
-  the repository).
+The one-time steps of the first release are done (namespace `org.tinygears`, signing key, Central token,
+`SECURITY.md`); a release follows [RELEASING.md](RELEASING.md). List here, as `- ` items, what blocks the next release:
+`release.sh check` fails while any is listed.
