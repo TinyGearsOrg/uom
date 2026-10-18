@@ -51,6 +51,8 @@ bundle, `skipPublishing` set literally in their POMs).
    the environment variable `MAVEN_GPG_PASSPHRASE` when it is set, else gpg-agent asks for it.
 5. **JDK 21.** Build releases with a JDK 21 (Temurin): the jars record `Build-Jdk-Spec`, so the bytes are
    reproducible per JDK version, and the reproducibility check of `verify-release.sh` compares builds on one JDK.
+   With sdkman, `.sdkmanrc` names the version: `sdk env` in the repository (or `sdkman_auto_env=true` in
+   `~/.sdkman/etc/config`) switches to it.
 
 ## Checklist
 
