@@ -35,7 +35,7 @@ self_test() {
     "short-hash|sub(CI, 'checkout@3d3c42e5aac5ba805825da76410c181273ba90b1', 'checkout@3d3c42e5')|action 'actions/checkout@3d3c42e5 # v7.0.1' is not an allowed action pinned to a commit hash"
     "no-version-comment|sub(CI, 'b1 # v7.0.1', 'b1')|action 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1' is not an allowed action pinned to a commit hash"
     "third-party-action|sub(CI, 'actions/setup-java@', 'someone/setup-java@')|action 'someone/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1' is not an allowed action"
-    "no-timeout|sub(CI, '    timeout-minutes: 45\n', '')|job release-check has no timeout-minutes"
+    "no-timeout|sub(CI, '    timeout-minutes: 20\n    steps:\n      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1\n        with:\n          persist-credentials: false\n      # Spotless', '    steps:\n      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1\n        with:\n          persist-credentials: false\n      # Spotless')|job analyze has no timeout-minutes"
     "no-concurrency|drop(CI, 'concurrency:', '== \'pull_request\' }}\n')|concurrency group must contain github.ref"
     "push-all-branches|sub(CI, '  push:\n    branches: [main]\n', '  push:\n')|push must be filtered to branches ['main'], is None"
     "push-other-branch|sub(CI, 'branches: [main]', 'branches: [main, ng]')|push must be filtered to branches ['main'], is {'branches': ['main', 'ng']}"
@@ -44,16 +44,18 @@ self_test() {
     "cancel-all|sub(CI, \"cancel-in-progress: \${{ github.event_name == 'pull_request' }}\", 'cancel-in-progress: true')|cancel-in-progress must be"
     "matrix|sub(CI, 'java: [17, 21, 25]', 'java: [21, 25]')|build matrix java is [21, 25], expected [17, 21, 25]"
     "distribution|sub(CI, 'distribution: temurin', 'distribution: zulu')|setup-java distribution is 'zulu'"
-    "missing-job|drop(CI, '  generated:', 'git status --porcelain)\"\n')|jobs are ['build', 'release-check'], expected ['build', 'generated', 'release-check']"
-    "no-require-jlink|sub(CI, 'verify-release.sh --require-jlink', 'verify-release.sh')|the run commands differ from the CI block of CONTRIBUTING.md"
+    "missing-job|drop(CI, '  generated:', 'git status --porcelain)\"\n')|jobs are ['analyze', 'build'], expected ['analyze', 'build', 'generated']"
+    "prek-unpinned|sub(CI, 'prek-version: 0.5.5', 'prek-version: latest')|job analyze: prek-version is 'latest', expected an exact version"
+    "prek-tag|sub(CI, 'j178/prek-action@1382ad72dea72f9d53832f2bcb65b3e87a947204 # v3.0.1', 'j178/prek-action@v3')|action 'j178/prek-action@v3' is not an allowed action pinned to a commit hash"
+    "no-javadoc-check|sub(CI, '      - run: bash scripts/check-javadoc.sh\n', '')|the run commands differ from the CI block of CONTRIBUTING.md"
     "contributing-drift|sub('CONTRIBUTING.md', 'mvn -B verify\n', 'mvn -B install\n')|the run commands differ from the CI block of CONTRIBUTING.md"
     "extra-workflow|add('.github/workflows/release.yml', 'name: release\n')|workflow files are ['ci.yml', 'release.yml'], expected ['ci.yml']"
     "yaml-error|sub(CI, 'permissions:', 'permissions: [')|ci.yml does not parse"
     "dependabot-ecosystem|drop(DB, '  - package-ecosystem: github-actions', 'patterns: [\"*\"]\n')|dependabot ecosystems are ['maven'], expected ['github-actions', 'maven']"
     "untracked-drift|sub(CI, ' && test -z', ' ; test -z')|the run commands differ from the CI block of CONTRIBUTING.md"
     "persist-credentials|sub(CI, 'persist-credentials: false', 'persist-credentials: true')|job build: checkout must set persist-credentials: false"
-    "job-environment|sub(CI, '    timeout-minutes: 45', '    timeout-minutes: 45\n    environment: production')|job release-check sets environment"
-    "reusable-workflow|sub(CI, '  release-check:\n', '  release-check:\n    uses: someone/x/.github/workflows/a.yml@v1\n')|job release-check sets uses"
+    "job-environment|sub(CI, '    name: analyze (prek hooks)\n', '    name: analyze (prek hooks)\n    environment: production\n')|job analyze sets environment"
+    "reusable-workflow|sub(CI, '  analyze:\n', '  analyze:\n    uses: someone/x/.github/workflows/a.yml@v1\n')|job analyze sets uses"
     "central-property|sub(CI, 'run: mvn -B verify', 'run: mvn -B verify -Dcentral.skipPublishing=false')|job build runs a forbidden command"
     "jdk-outside-matrix|sub(CI, 'java-version: 21', 'java-version: 25')|job generated: java-version is 25, expected 21"
     "cache-outside-build|sub(CI, 'java-version: 21\n', 'java-version: 21\n          cache: maven\n')|job generated: setup-java must not set cache"
@@ -156,11 +158,11 @@ if concurrency.get('cancel-in-progress') != CANCEL:
     fail("cancel-in-progress must be %s, is %s" % (CANCEL, concurrency.get('cancel-in-progress')))
 
 jobs = ci.get('jobs') or {}
-if sorted(jobs) != ['build', 'generated', 'release-check']:
-    fail("jobs are %s, expected ['build', 'generated', 'release-check']" % sorted(jobs))
+if sorted(jobs) != ['analyze', 'build', 'generated']:
+    fail("jobs are %s, expected ['analyze', 'build', 'generated']" % sorted(jobs))
 FORBIDDEN = re.compile(r'deploy|-Prelease|publish|\bgpg\b|\bgit\s+(push|tag)\b|\bgh\s+release\b|central', re.I)
 # a full commit hash with the release it is, as Dependabot writes it: tags can move, hashes cannot
-ACTION = re.compile(r'actions/(checkout|setup-java)@[0-9a-f]{40} # v\d+\.\d+\.\d+')
+ACTION = re.compile(r'(actions/(checkout|setup-java)|j178/prek-action)@[0-9a-f]{40} # v\d+\.\d+\.\d+')
 commands = []
 for name, job in jobs.items():
     for key in ('permissions', 'environment', 'secrets', 'uses', 'container', 'services'):
@@ -175,6 +177,10 @@ for name, job in jobs.items():
             with_ = step.get('with') or {}
             if step['uses'].startswith('actions/checkout@') and with_.get('persist-credentials') is not False:
                 fail("job %s: checkout must set persist-credentials: false" % name)
+            # a new prek release must not change the hooks' results unannounced
+            if step['uses'].startswith('j178/prek-action@') and not re.fullmatch(
+                    r'\d+\.\d+\.\d+', str(with_.get('prek-version', ''))):
+                fail("job %s: prek-version is '%s', expected an exact version" % (name, with_.get('prek-version')))
             if step['uses'].startswith('actions/setup-java@'):
                 if with_.get('distribution') != 'temurin':
                     fail("job %s: setup-java distribution is '%s', expected 'temurin'" % (name, with_.get('distribution')))

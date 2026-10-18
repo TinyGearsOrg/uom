@@ -35,7 +35,7 @@ plugins are cached), then:
    contains exactly those modules plus `java.base` and `java.measure`, and runs the consumer with the same output.
    Reported as `SKIPPED` (and the run ends with `OK (jlink skipped)`) when the JDK cannot link (no `jmods` and a
    runtime image that is not linkable or was modified by a distribution package); `--require-jlink` fails instead.
-   The release check on JDK 21 runs with `--require-jlink` (docs/RELEASING.md).
+   Before a release it runs on JDK 21 with `--require-jlink` (docs/RELEASING.md); CI does not run it.
 
 `--jdk <JDK home>` runs everything on that JDK (`JAVA_HOME`); options may come in any order. On a JDK other than 21 the script ends with a note that
 the JDK 21 run is still to be done. `--self-test` builds once and asserts that each check fails on a mutated copy
@@ -49,9 +49,10 @@ Parses the workflow and the dependabot configuration (python3 with PyYAML) and f
 `ci.yml` exists; the triggers are not exactly `push` (filtered to `main`) and an unfiltered `pull_request` (no
 `pull_request_target`); `cancel-in-progress` is not limited to pull-request runs; `permissions` is not
 exactly `contents: read` or a job sets its own; the workflow mentions `secrets`, `github.token` or `GITHUB_TOKEN`; a
-job is not `build` (matrix JDK 17, 21 and 25), `generated` or `release-check`, lacks `timeout-minutes` or runs a command
+job is not `build` (matrix JDK 17, 21 and 25), `generated` or `analyze`, lacks `timeout-minutes` or runs a command
 containing deploy, `-Prelease`, publish, central, gpg, `git push`/`git tag` or `gh release`; an action is not
-`actions/checkout` or `actions/setup-java` pinned to a full commit hash with its version as a comment
+`actions/checkout`, `actions/setup-java` or `j178/prek-action` (with an exact `prek-version`) pinned to a full commit hash
+with its version as a comment
 (`@<40 hex digits> # v7.0.1`, the form Dependabot keeps current), checkout keeps credentials, setup-java is not Temurin or sets
 a Maven cache outside `build`; the run commands differ from the CI block of `CONTRIBUTING.md`; dependabot does not
 update Maven (the root and `scripts/consumer`) and GitHub Actions weekly, grouped, with a PR limit and a cooldown of at

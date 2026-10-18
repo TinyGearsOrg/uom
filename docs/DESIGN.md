@@ -588,8 +588,10 @@ Dimension exponents have no range check: dimension arithmetic uses exact `int` o
   results, texts and errors.
 - Parsed units equal generated constants; catalog round trip for every unit (N6).
 - Generator golden tests: sample inputs compile, behave, and report errors with file and line.
-- CI drift check (`.github/workflows/ci.yml`, job `generated`): regenerate and fail on a non-empty `git diff` or an
-  untracked file.
+- CI (`.github/workflows/ci.yml`): `build` runs `mvn -B verify` on JDK 17, 21 and 25; `analyze` runs the pre-commit
+  hooks with prek (`check-pom.sh` and `check-workflows.sh` among them) and `check-javadoc.sh`; `verify-release.sh` runs
+  locally before a release (RELEASING.md). Drift check (job `generated`):
+  regenerate and fail on a non-empty `git diff` or an untracked file.
 - Semantics tests: precision mixing, equality and equivalence, alternate units, offset units,
   roots of non-perfect powers.
 - Serialization round trip (every catalog unit; 33 types x {double, decimal} x {ABSOLUTE, RELATIVE}; golden files);

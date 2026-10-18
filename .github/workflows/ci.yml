@@ -53,20 +53,22 @@ jobs:
       # untracked files count as drift too
       - run: git diff --exit-code && test -z "$(git status --porcelain)"
 
-  release-check:
-    name: release check (JDK 21)
+  analyze:
+    name: analyze (prek hooks)
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      # Spotless, the regeneration and check-pom.sh run Maven
       - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
           distribution: temurin
           java-version: 21
-      - run: bash scripts/check-pom.sh
+      # the hooks of .pre-commit-config.yaml on all files (CONTRIBUTING.md, "Pre-commit hooks")
+      - uses: j178/prek-action@1382ad72dea72f9d53832f2bcb65b3e87a947204 # v3.0.1
+        with:
+          prek-version: 0.5.5
+      # a javadoc warning would otherwise surface only in the release build
       - run: bash scripts/check-javadoc.sh
-      - run: bash scripts/check-workflows.sh
-      # Temurin ships jmods, so jlink must not be skipped; no Maven cache: the script uses temporary repositories
-      - run: bash scripts/verify-release.sh --require-jlink

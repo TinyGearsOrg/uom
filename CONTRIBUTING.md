@@ -80,20 +80,20 @@ skip them.
   `--self-test` proves its checks fail) and `bash scripts/check-workflows.sh` (the CI workflow and dependabot
   configuration). [scripts/README.md](scripts/README.md) lists what each script checks.
 
-Before a pull request, run what the CI runs (`mvn -B verify` on JDK 17, 21 and 25, the rest on JDK 21):
+Before a pull request, run what the CI runs (`mvn -B verify` on JDK 17, 21 and 25, the rest on JDK 21), and
+`prek run --all-files` (job `analyze`):
 
 ```
 mvn -B verify
 mvn -B -Pgenerate -pl uom-codegen -am process-classes
 git diff --exit-code && test -z "$(git status --porcelain)"
-bash scripts/check-pom.sh
 bash scripts/check-javadoc.sh
-bash scripts/check-workflows.sh
-bash scripts/verify-release.sh --require-jlink
 ```
 
 The workflow is `.github/workflows/ci.yml`; `bash scripts/check-workflows.sh` checks that it runs exactly these
-commands, with a read-only token and no deploy step. `--require-jlink` needs a JDK that can link (Temurin can).
+commands, with a read-only token and no deploy step. `verify-release.sh` is not part of CI: run it before a release,
+or after a change to the build ([docs/RELEASING.md](docs/RELEASING.md)); `--require-jlink` needs a JDK that can link
+(Temurin can).
 
 ## Pre-commit hooks
 
@@ -114,8 +114,8 @@ prek install            # once: the pre-commit and commit-msg hooks
 prek run --all-files    # check the whole tree
 ```
 
-A run over the whole tree takes about 15 seconds. `check-javadoc.sh` (a clean release build) and the tests are not
-hooks; `mvn -B verify` and CI stay the gate.
+A run over the whole tree takes about 15 seconds. CI runs the same hooks on all files (job `analyze`, prek 0.5.5).
+`check-javadoc.sh` (a clean release build) and the tests are not hooks; `mvn -B verify` and CI stay the gate.
 
 ## Conventions
 
