@@ -61,7 +61,7 @@ the release environment and the build; these stay a review:
 - [ ] `docs/api/public-api.txt`: the diff since the last release matches the version step (a removed or changed line
       needs a major version after 1.0, see [DESIGN.md](DESIGN.md), section 8; `check` fails on removed lines within one
       major version from 1.0).
-- [ ] `docs/TODO.md` has no open item that blocks this release (`check` fails while "Release readiness" lists steps).
+- [ ] No open GitHub issue blocks this release.
 
 ## Procedure
 
@@ -89,7 +89,7 @@ JDK on the `PATH`, pass `--jdk <JDK 21 home>` to `check`).
 
    It fails on the first problem: a dirty tree, a branch other than `main` or not equal to `origin/main`, an existing
    tag, no green CI run for the commit, a version or a text left at the old version, a changelog date that differs from
-   the build timestamp, open release steps in `docs/TODO.md`, POM URLs of another repository, removed public API lines
+   the build timestamp, POM URLs of another repository, removed public API lines
    within a major version, a JDK other than 21, no `central` server in `~/.m2/settings.xml`, no gpg secret key. Then it
    runs `mvn -q -B clean verify`, `check-pom.sh`, `check-javadoc.sh` and `verify-release.sh --require-jlink`
    ([scripts/README.md](../scripts/README.md)), which builds the release artifacts into a temporary repository, checks

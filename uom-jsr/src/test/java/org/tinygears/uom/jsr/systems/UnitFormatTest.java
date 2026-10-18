@@ -48,7 +48,7 @@ class UnitFormatTest {
         return (UomUnit<?>) format.parse(text);
     }
 
-    // Read, never written: the Greek mu (U+03BC) for the micro sign, l for the litre (TODO item 10).
+    // Read, never written: the Greek mu (U+03BC) for the micro sign, l for the litre (DESIGN DR-26).
     @Test
     void greekMuAndLowercaseLitreParse() {
         assertSame(SI.MICROMETRE, parse("\u03BCm"));

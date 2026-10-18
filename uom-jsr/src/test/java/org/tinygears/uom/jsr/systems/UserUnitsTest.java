@@ -202,7 +202,7 @@ class UserUnitsTest {
 
     @Test
     void builtInSymbolsCannotBeRedefined() {
-        // \u03BCm and l read as µm and L (TODO item 10), so a file cannot define them either
+        // \u03BCm and l read as µm and L (DESIGN DR-26), so a file cannot define them either
         for (String symbol : List.of("ft", "m", "kg", "km", "mm", "mi", "s", "\u03BCm", "l", "ml")) {
             fails("league 3 mi\n" + symbol + " 2 league\n", "user.units:2: symbol '" + symbol + "' is already defined");
         }

@@ -140,10 +140,6 @@ if not m or m.group(1) != v or not m.group(2):
 stamp = re.search(r'<project.build.outputTimestamp>([^<]*)<', (root / 'pom.xml').read_text()).group(1)
 if not stamp.startswith(m.group(2)):
     fail('pom.xml: project.build.outputTimestamp is %s, not the changelog date %s' % (stamp, m.group(2)))
-todo = (root / 'docs/TODO.md').read_text()
-section = todo.split('## Release readiness', 1)
-if len(section) == 2 and re.search(r'^- ', section[1].split('\n## ', 1)[0], re.M):
-    fail('docs/TODO.md: "Release readiness" still lists open steps')
 EOF
 
   say "repository and public API"
@@ -251,13 +247,6 @@ self_test() {
   git clone -q "$ROOT" "$base"
   git -C "$base" remote remove origin
   git -C "$base" -c user.name=t -c user.email=t@t commit -q --allow-empty -m "test: base"
-  # no open release steps in the copy
-  python3 - "$base/docs/TODO.md" <<'EOF'
-import sys
-p = sys.argv[1]; t = open(p).read(); i = t.find('## Release readiness')
-open(p, 'w').write(t[:i] if i >= 0 else t)
-EOF
-  git -C "$base" -c user.name=t -c user.email=t@t commit -q -am "test: no open release steps"
   printf '<settings><servers><server><id>central</id><username>u</username><password>p</password></server></servers></settings>\n' \
     > "$tmp/settings.xml"
   major=$(java -XshowSettings:properties -version 2>&1 | sed -n 's/ *java.specification.version = //p')
@@ -290,7 +279,6 @@ EOF
     "changelog|sub('CHANGELOG.md', '## [9.9.9] - 2030-01-02', '## [Unreleased]')|9.9.9|CHANGELOG.md: latest entry is '## [Unreleased]'"
     "timestamp|sub('pom.xml', '2030-01-02T00:00:00Z', '2026-01-01T00:00:00Z')|9.9.9|outputTimestamp is 2026-01-01T00:00:00Z, not the changelog date 2030-01-02"
     "status-text|add('README.md', 'not released')|9.9.9|README.md still says 'not released'"
-    "release-steps|add('docs/TODO.md', '## Release readiness\\n\\n- Verify the namespace.\\n')|9.9.9|\"Release readiness\" still lists open steps"
     "dirty|untracked('x.txt')|9.9.9|the working tree is not clean"
     "tag-exists|tag_('v9.9.9')|9.9.9|tag v9.9.9 exists"
   )

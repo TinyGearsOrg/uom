@@ -53,7 +53,7 @@ conflicts with an explicit request from the user, ask before overriding it.
   compatibility is not required unless the user asks for it; from 1.0, semantic versioning applies
   ([docs/DESIGN.md](docs/DESIGN.md), section 8).
 - A design decision gets a decision record in [docs/DESIGN.md](docs/DESIGN.md) section 9 (`DR-nn`: decision, why,
-  rejected, revisit if). [docs/TODO.md](docs/TODO.md) lists open work only: remove an item when it is done.
+  rejected, revisit if). Open work is tracked in the GitHub issues of `TinyGearsOrg/uom`, not in a document.
 - Run the hooks of `.pre-commit-config.yaml` before you finish: `prek run --all-files` (or `pre-commit run
   --all-files`); they fix whitespace, format, regenerate and check the scripts, POMs and workflows
   ([CONTRIBUTING.md](CONTRIBUTING.md)).

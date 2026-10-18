@@ -4,7 +4,7 @@ Status: implemented and prepared for release (POM metadata, release profile, API
 verification, CI); nothing is published. This document holds the requirements (section 1), the architecture and its
 rules (sections 2 to 7), the public API and versioning (section 8) and the decision records (section 9). The user
 documentation is [NATIVE.md](NATIVE.md), [JSR.md](JSR.md) and [CUSTOM-UNITS.md](CUSTOM-UNITS.md); open work is in
-[TODO.md](TODO.md).
+the GitHub issues.
 
 ## 1. Purpose and requirements
 

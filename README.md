@@ -80,8 +80,7 @@ runtime dependency, and on the module path `requires org.tinygears.uom.jsr;` (wh
   native API, the service provider next to other implementations, and the differences from Indriya.
 - [docs/CUSTOM-UNITS.md](docs/CUSTOM-UNITS.md): define your own units in `.units` files and load them at run time.
 - [docs/UNITS.md](docs/UNITS.md): every unit of the built-in catalogs (generated).
-- [docs/DESIGN.md](docs/DESIGN.md): requirements, architecture, public API and versioning, and the design decisions;
-  [docs/TODO.md](docs/TODO.md): open work.
+- [docs/DESIGN.md](docs/DESIGN.md): requirements, architecture, public API and versioning, and the design decisions.
 - [SECURITY.md](SECURITY.md): serialization filter, reporting a vulnerability.
 - [CHANGELOG.md](CHANGELOG.md): changes per release.
 - [CONTRIBUTING.md](CONTRIBUTING.md): build, regeneration, tests, conventions; [AGENTS.md](AGENTS.md): the rules for
