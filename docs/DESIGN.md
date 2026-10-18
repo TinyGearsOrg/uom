@@ -801,7 +801,7 @@ statC:statcoulomb    1|2997924580 C           # exact fraction
   steps, texts of at most 10000 characters, `NotSerializableException` on write), so the bytes depend on values only.
   Dimension exponents have no range check: dimension arithmetic uses exact `int` operations and throws on overflow.
   - A unit is its atoms and exponents, converter factor and offset (with the conversion steps), symbol and name; the
-    converter cache is transient. A multi-step converter is checked against its steps when they fold exactly, else by
+    caches (converters, the units of products and quotients, the inverse) are transient. A multi-step converter is checked against its steps when they fold exactly, else by
     a 60-digit decimal fold within 1e-40. Steps that cannot be checked (a part over 4096 bits, or no decimal value)
     are dropped: the converter reads as one step, so its steps never contradict what it converts.
   - An alternate atom carries its symbol, dimension and definition. On read the dimension must match the definition

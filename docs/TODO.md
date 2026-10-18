@@ -4,7 +4,7 @@ Open work only. The item numbers are stable IDs: a gap is a finished item; the d
 to revisit them, are in [DESIGN.md](DESIGN.md) section 1 (DR-01 to DR-14); the last version of this file with the full
 discussion is `git show 5d734d3:docs/TODO.md`. The groups: gaps against the JSR-385 reference implementation Indriya
 (10, 13, 14), pre-commit (17), open defects and hardening carried over from the milestone reviews (21 to 32), the
-native API (33), performance (34), then the steps before the first release ("Release readiness"). Each item says under
+native API (33), then the steps before the first release ("Release readiness"). Each item says under
 "Needed by" what, if anything, it blocks.
 
 ## 10. Behaviour comparison with Indriya
@@ -128,19 +128,6 @@ run-time `.units` files and serialization on the engine's shared format code, th
 which present `uom` first ([NATIVE-API.md](NATIVE-API.md), "Progress"). Open: merging `native-prototype` into `ng`.
 
 **Needed by:** before 1.0 (module boundaries and the public API).
-
-## 34. Quantity products and offset sums recompute exact algebra
-
-**Status:** open. Measured on JDK 25 (warm): a quantity product such as `Length.divide(Quantity)` takes about 1.4 µs
-and a `double` sum through an offset unit (`°C + K`) about 0.8 µs, against about 10 ns for a sum in linear units.
-- Products: every call builds the result unit, `getSystemUnit().multiply/divide(...)` (the engine's `m.divide(s)`
-  alone is about 1.5 µs). A cache of products and quotients of system units (bounded, as the converter cache) would
-  remove it.
-- Offset sums and scalars: `DoubleArithmetic` inverts the converter to the system unit on every call
-  (`Converter.inverse()` with exact factors, about 1.2 µs). Caching the inverse in `Converter`, or its `double`
-  coefficients, would remove it.
-
-**Needed by:** nothing; performance.
 
 ## Release readiness
 

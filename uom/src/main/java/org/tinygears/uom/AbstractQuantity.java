@@ -207,7 +207,7 @@ public abstract class AbstractQuantity<Q extends Quantity<Q>> implements Quantit
         return product(
                 other,
                 false,
-                unit.systemUnit().multiply(other.unit().systemUnit()).systemUnit(),
+                Unit.of(Untyped.class, unit.engine().systemProduct(other.unit().engine())),
                 UntypedValue::new);
     }
 
@@ -216,13 +216,13 @@ public abstract class AbstractQuantity<Q extends Quantity<Q>> implements Quantit
         return product(
                 other,
                 true,
-                unit.systemUnit().divide(other.unit().systemUnit()).systemUnit(),
+                Unit.of(Untyped.class, unit.engine().systemQuotient(other.unit().engine())),
                 UntypedValue::new);
     }
 
     @Override
     public Untyped inverse() {
-        Unit<Untyped> u = unit.systemUnit().inverse().systemUnit();
+        Unit<Untyped> u = Unit.of(Untyped.class, unit.engine().systemInverse());
         if (decimal == null) {
             return new UntypedValue(
                     1 / DoubleArithmetic.systemValue(value, unit.engine(), relative()),

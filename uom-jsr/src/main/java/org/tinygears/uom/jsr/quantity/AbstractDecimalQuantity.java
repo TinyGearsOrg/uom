@@ -409,7 +409,7 @@ public abstract class AbstractDecimalQuantity<Q extends Quantity<Q>, R extends U
     @Override
     public UomQuantity<?, ?> inverse() {
         BigDecimal r = DecimalArithmetic.inverse(value, unit.engine(), relative(), mathContext);
-        return UntypedDecimalQuantity.of(r, unit.getSystemUnit().inverse().getSystemUnit(), mathContext);
+        return UntypedDecimalQuantity.of(r, UomUnit.of(unit.engine().systemInverse()), mathContext);
     }
 
     /**
@@ -491,10 +491,10 @@ public abstract class AbstractDecimalQuantity<Q extends Quantity<Q>, R extends U
                 that.getScale() == Quantity.Scale.RELATIVE,
                 divide,
                 mc);
-        UomUnit<?> product = divide
-                ? unit.getSystemUnit().divide(thatUnit.getSystemUnit())
-                : unit.getSystemUnit().multiply(thatUnit.getSystemUnit());
-        return UntypedDecimalQuantity.of(r, product.getSystemUnit(), mc);
+        org.tinygears.uom.engine.Unit product = divide
+                ? unit.engine().systemQuotient(thatUnit.engine())
+                : unit.engine().systemProduct(thatUnit.engine());
+        return UntypedDecimalQuantity.of(r, UomUnit.of(product), mc);
     }
 
     /** The result context against {@code that}: the lower one; an exact or double value adopts this context. */

@@ -95,6 +95,9 @@ org.tinygears.uom.engine Unit member public org.tinygears.uom.engine.Unit pow(in
 org.tinygears.uom.engine Unit member public org.tinygears.uom.engine.Unit root(int)
 org.tinygears.uom.engine Unit member public org.tinygears.uom.engine.Unit scaledBy(org.tinygears.uom.engine.Factor)
 org.tinygears.uom.engine Unit member public org.tinygears.uom.engine.Unit shiftedBy(org.tinygears.uom.engine.Factor)
+org.tinygears.uom.engine Unit member public org.tinygears.uom.engine.Unit systemInverse()
+org.tinygears.uom.engine Unit member public org.tinygears.uom.engine.Unit systemProduct(org.tinygears.uom.engine.Unit)
+org.tinygears.uom.engine Unit member public org.tinygears.uom.engine.Unit systemQuotient(org.tinygears.uom.engine.Unit)
 org.tinygears.uom.engine Unit member public org.tinygears.uom.engine.Unit systemUnit()
 org.tinygears.uom.engine Unit member public org.tinygears.uom.engine.Unit transform(org.tinygears.uom.engine.Converter)
 org.tinygears.uom.engine Unit member public static final org.tinygears.uom.engine.Unit ONE

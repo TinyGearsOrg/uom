@@ -47,6 +47,8 @@ public final class Converter implements Serializable {
     /** The steps; the class is written through its Proxy, so the field type need not be serializable. */
     @SuppressWarnings("serial")
     private final List<Converter> steps;
+    /** The inverse, computed once: offset sums and scalars invert the converter to the system unit on every call. */
+    private transient volatile Converter inverse;
 
     /** The converter {@code x -> x}. */
     public static final Converter IDENTITY = new Converter(Factor.ONE, Factor.ZERO);
@@ -136,8 +138,13 @@ public final class Converter implements Serializable {
      * @return {@code x -> (x - offset) / factor}
      */
     public Converter inverse() {
-        Factor f = Factor.ONE.divide(factor);
-        return new Converter(f, offset.negate().multiply(f));
+        Converter i = inverse;
+        if (i == null) {
+            Factor f = Factor.ONE.divide(factor);
+            i = new Converter(f, offset.negate().multiply(f));
+            inverse = i;
+        }
+        return i;
     }
 
     /**

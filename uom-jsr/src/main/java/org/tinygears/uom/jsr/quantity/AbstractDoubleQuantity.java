@@ -357,7 +357,7 @@ public abstract class AbstractDoubleQuantity<Q extends Quantity<Q>, R extends Uo
         if (promotes(multiplicand)) {
             return promoted(multiplicand).multiply(multiplicand);
         }
-        return untyped(product(multiplicand, u, false), unit.getSystemUnit().multiply(u.getSystemUnit()));
+        return untyped(product(multiplicand, u, false), unit.engine().systemProduct(u.engine()));
     }
 
     /**
@@ -372,7 +372,7 @@ public abstract class AbstractDoubleQuantity<Q extends Quantity<Q>, R extends Uo
         if (promotes(divisor)) {
             return promoted(divisor).divide(divisor);
         }
-        return untyped(product(divisor, u, true), unit.getSystemUnit().divide(u.getSystemUnit()));
+        return untyped(product(divisor, u, true), unit.engine().systemQuotient(u.engine()));
     }
 
     /** Returns {@code 1 / systemValue} in the inverse system unit, as an {@link Untyped} quantity. */
@@ -380,7 +380,7 @@ public abstract class AbstractDoubleQuantity<Q extends Quantity<Q>, R extends Uo
     public UomQuantity<?, ?> inverse() {
         return untyped(
                 1 / DoubleArithmetic.systemValue(value, unit.engine(), relative()),
-                unit.getSystemUnit().inverse());
+                unit.engine().systemInverse());
     }
 
     /**
@@ -457,8 +457,9 @@ public abstract class AbstractDoubleQuantity<Q extends Quantity<Q>, R extends Uo
         return createDecimal(Precision.toDecimal(value), unit, scale, mc);
     }
 
-    private static UomQuantity<?, ?> untyped(double value, UomUnit<?> unit) {
-        return new UntypedDoubleQuantity(value, UomUnit.unchecked(unit.getSystemUnit()), Quantity.Scale.ABSOLUTE);
+    /** An untyped quantity in {@code systemUnit}, the unit the engine gives a product, quotient or inverse. */
+    private static UomQuantity<?, ?> untyped(double value, org.tinygears.uom.engine.Unit systemUnit) {
+        return new UntypedDoubleQuantity(value, UomUnit.unchecked(UomUnit.of(systemUnit)), Quantity.Scale.ABSOLUTE);
     }
 
     private double product(Quantity<?> that, UomUnit<?> u, boolean divide) {

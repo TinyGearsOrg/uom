@@ -56,6 +56,11 @@ public final class Unit implements Serializable {
     private final transient int hash;
     /** Converters to the most recently used targets; bounded, so the targets are not all kept alive. */
     private final transient BoundedCache<Unit, Converter> converterCache = new BoundedCache<>(CONVERTER_CACHE_SIZE);
+    /** {@link #systemProduct} and {@link #systemQuotient} by the other unit, bounded as the converters. */
+    private final transient BoundedCache<Unit, Unit> productCache = new BoundedCache<>(CONVERTER_CACHE_SIZE);
+    private final transient BoundedCache<Unit, Unit> quotientCache = new BoundedCache<>(CONVERTER_CACHE_SIZE);
+    /** {@link #systemInverse}, computed once. */
+    private transient volatile Unit systemInverse;
 
     private Unit(Map<UnitAtom, Integer> atoms, Converter toSystem, String symbol, String name) {
         this.atoms = atoms;
@@ -163,6 +168,42 @@ public final class Unit implements Serializable {
             return this;
         }
         return new Unit(atoms, Converter.IDENTITY, systemLabel(), null);
+    }
+
+    /**
+     * The unit of the product of two quantities in this unit and in {@code that}: the system unit of the product of
+     * the two system units ({@code kg·m/s} for kilograms times kilometres per hour). It depends on the atoms only, so
+     * it is cached by {@code that}: products of quantities would otherwise rebuild it with the exact algebra each time.
+     *
+     * @param that the other unit
+     * @return the system unit of the product
+     */
+    public Unit systemProduct(Unit that) {
+        return productCache.get(that, t -> systemUnit().multiply(t.systemUnit()).systemUnit());
+    }
+
+    /**
+     * The unit of the quotient of two quantities in this unit and in {@code that}, as {@link #systemProduct}.
+     *
+     * @param that the divisor's unit
+     * @return the system unit of the quotient
+     */
+    public Unit systemQuotient(Unit that) {
+        return quotientCache.get(that, t -> systemUnit().divide(t.systemUnit()).systemUnit());
+    }
+
+    /**
+     * The unit of the reciprocal of a quantity in this unit: the system unit of the inverse system unit, computed once.
+     *
+     * @return the system unit of the inverse
+     */
+    public Unit systemInverse() {
+        Unit u = systemInverse;
+        if (u == null) {
+            u = systemUnit().inverse().systemUnit();
+            systemInverse = u;
+        }
+        return u;
     }
 
     private String systemLabel() {

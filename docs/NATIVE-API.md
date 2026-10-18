@@ -47,7 +47,9 @@ completing it runs in five stages: (1) the 33 types generated with typed product
   add with an offset unit about 0.8 µs, against 10 ns for the native `Length.divide(Time)`, which knows its result
   unit. The JSR-385 side builds the product unit on every call (the engine's `m.divide(s)` alone takes 1.5 µs), and
   the `double` sum through an offset unit inverts the converter to the system unit on every call (1.2 µs with exact
-  factors); caching both is TODO item 34.
+  factors). Both are cached now: `Converter` keeps its inverse, and `Unit.systemProduct`, `systemQuotient` and
+  `systemInverse` cache the unit of a product (it depends on the atoms only), so a product, an inverse or a sum
+  through an offset unit takes 13 to 24 ns on either side (JDK 25).
 - Stages 1 to 3: `GenerateNative` writes, from the data files of the JSR-385 side and
   `data/quantity-relations.txt` (22 relations, 86 typed methods), the 33 native types (interface with factories,
   `SYSTEM_UNIT` and typed products, and a class; 5679 lines with the registry) and the eight catalogs with
