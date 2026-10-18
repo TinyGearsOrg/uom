@@ -68,19 +68,20 @@ System.out.println(SI.DEGREE_CELSIUS + " " + Units.CELSIUS);                    
 System.out.println(SI.METRE.prefix(MetricPrefix.MICRO) + " " + MetricPrefix.MICRO(Units.METRE)); // prints: µm μm
 ```
 
-**Open:** uom does not parse `μ`, `℃` or `㎥`, so text that Indriya wrote does not always read back in uom (see Parsing).
+uom reads the Greek mu as the micro prefix, so `μm` that Indriya wrote parses back (and prints as `µm`); `℃` and `㎥`
+do not parse (DESIGN DR-26; see Parsing).
 
 ### System units of prefixed derived units
 
-**Open.** The system unit of a prefixed derived unit prints in uom as its decomposition into base units, though it
-equals the named unit: `kPa` has the system unit `kg/(m·s^2)`, which equals `Pa`. Indriya gives `Pa`. A pressure in
-kilopascal converted to system units therefore prints as `5000.0 kg/(m·s^2)`.
+Both give the named system unit: `kPa` has the system unit `Pa`, so a pressure in kilopascal converted to system units
+prints as `5000.0 Pa`. In uom a named unit takes the system unit of its quantity type (DESIGN DR-25); an unnamed
+product keeps the label of its base units, so `N·m` does not become `J`.
 
 ```java jsr
 import tech.units.indriya.unit.Units;
-System.out.println(SI.KILOPASCAL.getSystemUnit());                                    // prints: kg/(m·s^2)
-System.out.println(SI.KILOPASCAL.getSystemUnit().equals(SI.PASCAL));                  // prints: true
+System.out.println(SI.KILOPASCAL.getSystemUnit());                                    // prints: Pa
 System.out.println(MetricPrefix.KILO(Units.PASCAL).getSystemUnit());                  // prints: Pa
+System.out.println(SI.NEWTON.multiply(SI.METRE).getSystemUnit());                     // prints: kg·m^2/s^2
 ```
 
 ## Quantities
@@ -197,7 +198,7 @@ Both parse the SI units and symbols, run-time metric prefixes (`Mm`, `dam`, `mHz
 | Text | uom | Indriya |
 |---|---|---|
 | `L`, `mL` (litre) | yes | no |
-| `l`, `ml` (litre) | no | yes |
+| `l`, `ml` (litre; uom prints `L`, `mL`) | yes | yes |
 | `t`, `ha`, `eV`, `Da`, `au` (accepted for use with the SI) | yes | no |
 | `in`, `ft`, `yd`, `mi`, `lb`, `oz` and the other catalogs ([UNITS.md](UNITS.md)) | yes | no |
 | `bit`, `B`, `kB`, `MiB` | yes | no |
@@ -205,7 +206,8 @@ Both parse the SI units and symbols, run-time metric prefixes (`Mm`, `dam`, `mHz
 | `kg m/s^2` (a space as product), `s⁻¹` (superscript minus) | yes | no |
 | `one`, `%` | no | yes |
 | `m2` (exponent without `^`) | no | yes |
-| `μm` (Greek mu), `℃`, `m°C` | no | yes |
+| `μm` (Greek mu; uom prints `µm`) | yes | yes |
+| `℃`, `m°C`, `㎥` | no | yes |
 | `bar`, `kWh`, `ohm`, `atm`, `mmHg`, `Å`, `°`, `′`, `″`, `um` | no | no |
 
 uom has the degree, arcminute and arcsecond as `deg`, `arcmin` and `arcsec`.
@@ -221,8 +223,9 @@ System.out.println(indriya.parse("m2") + " " + indriya.parse("l") + " " + indriy
 
 ### A parsed formula keeps its text
 
-**Open.** A unit that uom parses from a formula keeps the formula, normalised, as its symbol: `m*s^-1` prints as
-`m·s^-1`, though it equals `m/s`. Indriya prints the unit it built: `m/s`.
+A unit that uom parses from a formula keeps the formula, normalised, as its symbol: `m*s^-1` prints as `m·s^-1`,
+though it equals `m/s`. Indriya prints the unit it built: `m/s`. uom keeps what the user wrote (DESIGN DR-27): printing
+the equal catalog unit would turn `kg·m^2/s^2` into `J`.
 
 ```java jsr
 import javax.measure.format.UnitFormat;

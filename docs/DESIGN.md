@@ -104,8 +104,8 @@ behaviour for users is in the linked documents. The full discussion and probe re
 - *See.* [CUSTOM-UNITS.md](CUSTOM-UNITS.md); `UnnamedUnitTextTest`, `DefinitionParserTest`, `UnitFormatTest`.
 
 **DR-07 Unit identity and printing.**
-- *Decision.* `getSystemUnit()` returns a named system unit itself (`SI.NEWTON` keeps `N`), else the unscaled unit of the same
-  atoms with the label of the atoms as symbol (a symbol built by `multiply`, such as `m·m`, is no name: the product of two
+- *Decision.* `getSystemUnit()` returns a named system unit itself (`SI.NEWTON` keeps `N`), for another named unit the
+  system unit of its quantity type (DR-25), else the unscaled unit of the same atoms with the label of the atoms as symbol (a symbol built by `multiply`, such as `m·m`, is no name: the product of two
   lengths is `m^2`). An unnamed unit prints as the standard format writes it (`mHz`, `km`, `1000·min`) through the
   `spi.UnitTexts` hook of the provider, else as its definition (`1000·m`, `K + 5`); a re-entrancy guard keeps `toString` from
   recursing. A dimensionless quantity prints as its number alone (`5.0`), which parses back; a unit of dimension one with
@@ -429,6 +429,41 @@ behaviour for users is in the linked documents. The full discussion and probe re
   unit for a type.
 - *See.* `SystemsCatalogTest.fallbackPreferredUnitsAreNotMembers`, `NativeFormatTest.fallbackPreferredUnitsAreNotMembers`.
 
+**DR-25 A named unit's system unit is the system unit of its quantity type.**
+- *Decision.* `getSystemUnit()` (`systemUnit()` in `uom`) of a named unit that is not itself a system unit returns the
+  named system unit of the standard quantity type with its atoms: `kPa` gives `Pa`, `kJ` `J`, `psi` `Pa`, `kn` `m/s`. An unnamed unit (`N·m`, `kPa·2`) and a named unit of no standard type (`P`, the poise) keep the label of
+  their atoms (`kg·m^2/s^2`, `kg/(m·s)`). `uom-jsr` finds the type through the `spi.SystemUnits` hook of its provider,
+  `uom` through the unit's type.
+- *Why.* `kPa.getSystemUnit()` printed `kg/(m·s^2)` and a pressure in system units `5000.0 kg/(m·s^2)`; Indriya gives
+  `Pa`. A named unit has a quantity type (the catalogs and loaded files type them by their system unit), and that type
+  has exactly one named system unit; an unnamed product has no such claim, so `N·m` does not become `J`.
+- *Rejected.* Keeping the unit a unit was derived from (an engine field and a serial-form change; the native catalogs
+  build `kPa` from base units, not from `Pa`). A lookup by atoms for every unit: `N·m` would print as `J`.
+- *Revisit if.* Unnamed units should print named system units too, or a quantity type gets two named system units.
+- *See.* `SystemUnitNamesTest`, `UomUnitTest.systemUnitSymbols`, `NativeQuantityTest.namedUnitsTakeTheSystemUnitOfTheirType`;
+  [INDRIYA.md](INDRIYA.md), "System units of prefixed derived units".
+
+**DR-26 The Greek mu and the lowercase litre are read, not written.**
+- *Decision.* The unit format reads the Greek small mu (U+03BC) as the micro sign (U+00B5) and `l` as the litre `L`,
+  plain or with a metric prefix (`μm`, `ml`, `μl`, `dal`), after the exact symbols and the prefixed forms, so `mol` and
+  `Gal` keep their meaning. It writes `µ` and `L`. `℃`, `㎥`, `one`, `%` and `m2` stay refused.
+- *Why.* Indriya writes `μm` and `l`, and both spellings are standard rather than look-alikes: Unicode prefers U+03BC for
+  micro (U+00B5 normalises to it), and the SI Brochure gives both `L` and `l` for the litre. The others are compatibility
+  characters (`℃`, `㎥`), new units (`one`, `%`) or a syntax that clashes with symbols ending in a digit (`m2`).
+- *Rejected.* Exact symbols only (text Indriya wrote does not read back). Normalising every compatibility character.
+- *Revisit if.* Users need `℃`, `%` or another spelling read.
+- *See.* `UnitFormatTest.greekMuAndLowercaseLitreParse`, `UserUnitsTest.builtInSymbolsCannotBeRedefined`;
+  [CUSTOM-UNITS.md](CUSTOM-UNITS.md), "Symbols".
+
+**DR-27 A parsed formula keeps its text as symbol.**
+- *Decision.* A unit parsed from a formula keeps the formula, normalised, as its symbol: `m*s^-1` prints `m·s^-1`, though
+  it equals `m/s`.
+- *Why.* The symbol is what the user wrote. Printing an equal catalog unit instead would turn `kg·m^2/s^2` into `J` (the
+  energy and the torque), and a formula with a factor (`km/h`) has no label of its atoms to fall back on.
+- *Rejected.* Printing the equal catalog unit, as Indriya prints the unit it built.
+- *Revisit if.* Users expect parsed formulas to print canonically.
+- *See.* [INDRIYA.md](INDRIYA.md), "A parsed formula keeps its text".
+
 ## 2. Modules and data flow
 
 ```
@@ -471,8 +506,9 @@ the catalogs are one module because the typed quantities need the provider (`asT
 - **Unit.** One implementation class holding a system-unit decomposition (a map from atoms to
   integer exponents; atoms are the seven base units and the alternate units), a converter to
   that system unit, and a symbol and name. `getSystemUnit()` is the same decomposition with an
-  identity converter: the unit itself if it already is a named system unit (`N` keeps its symbol and name), else a new
-  unit whose symbol is the label of the atoms (`kg·m/s^2`, `m^2`). A dimensionless quantity prints as its number alone
+  identity converter: the unit itself if it already is a named system unit (`N` keeps its symbol and name), for another
+  named unit the system unit of its standard quantity type (`Pa` for `kPa`, DR-25), else a new unit whose symbol is
+  the label of the atoms (`kg·m/s^2`, `m^2`). A dimensionless quantity prints as its number alone
   (`5.0`), which `UomQuantityFormat.parse` reads back as dimensionless.
   - `equals` compares decomposition and converter, ignoring symbol and name (F21), so
     `RADIAN != ONE` and `METRE.divide(SECOND)` equals the `m/s` constant. `isEquivalentTo`

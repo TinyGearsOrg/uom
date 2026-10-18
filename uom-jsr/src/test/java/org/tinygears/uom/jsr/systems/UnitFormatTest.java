@@ -48,6 +48,26 @@ class UnitFormatTest {
         return (UomUnit<?>) format.parse(text);
     }
 
+    // Read, never written: the Greek mu (U+03BC) for the micro sign, l for the litre (TODO item 10).
+    @Test
+    void greekMuAndLowercaseLitreParse() {
+        assertSame(SI.MICROMETRE, parse("\u03BCm"));
+        assertEquals("µm", format.format(parse("\u03BCm")));
+        assertEquals(SI.METRE.prefix(MetricPrefix.MICRO).divide(SI.SECOND), parse("\u03BCm/s"));
+        assertSame(SI.LITRE, parse("l"));
+        assertSame(SI.MILLILITRE, parse("ml"));
+        assertEquals("µL", format.format(parse("\u03BCl")));
+        assertEquals(SI.LITRE.prefix(MetricPrefix.DECA), parse("dal"));
+        assertEquals("daL", parse("dal").getSymbol());
+        // exact symbols win: mol and Gal are not prefixed litres
+        assertSame(SI.MOLE, parse("mol"));
+        assertSame(CGS.GALILEO, parse("Gal"));
+        for (String text : new String[] { "\u03BC", "Kil", "kl2", "\u03BCmol\u03BC" }) {
+            assertThrows(MeasurementParseException.class, () -> format.parse(text), text);
+        }
+        assertEquals(SI.MOLE.prefix(MetricPrefix.MICRO), parse("\u03BCmol"));
+    }
+
     @Test
     void everyCatalogUnitRoundTrips() {
         assertEquals(SystemsCatalogTest.members("si.units").size(), SI.UNITS.size());

@@ -19,12 +19,13 @@ import javax.measure.spi.SystemOfUnitsService;
 
 import org.tinygears.uom.jsr.quantity.QuantityTypes;
 import org.tinygears.uom.jsr.spi.QuantityFactories;
+import org.tinygears.uom.jsr.spi.SystemUnits;
 import org.tinygears.uom.jsr.spi.UnitTexts;
 
 /** The JSR-385 service provider of this implementation. */
-// QuantityFactories and UnitTexts are the core's hooks, not API
+// QuantityFactories, SystemUnits and UnitTexts are the core's hooks, not API
 @SuppressWarnings("exports")
-public final class UomServiceProvider extends ServiceProvider implements QuantityFactories, UnitTexts {
+public final class UomServiceProvider extends ServiceProvider implements QuantityFactories, SystemUnits, UnitTexts {
     private final SystemOfUnitsService systems = new UomSystemOfUnitsService();
     private final FormatService formats = new UomFormatService();
 
@@ -57,6 +58,18 @@ public final class UomServiceProvider extends ServiceProvider implements Quantit
     /** Holds the standard format, which is created when the first unnamed unit prints. */
     private static final class Standard {
         static final UomUnitFormat FORMAT = UomUnitFormat.standard();
+    }
+
+    /**
+     * The system unit of the standard quantity type whose system unit equals {@code unit}, atoms included.
+     *
+     * @param unit an unscaled unit
+     * @return the type's system unit, or null if no standard type has it
+     */
+    @Override
+    public Unit<?> namedSystemUnit(Unit<?> unit) {
+        QuantityFactory<?> factory = UomQuantityFormat.Factories.BY_SYSTEM_UNIT.get(unit);
+        return factory == null ? null : factory.getSystemUnit();
     }
 
     /**

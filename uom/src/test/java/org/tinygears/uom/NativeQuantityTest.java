@@ -24,11 +24,13 @@ import org.tinygears.uom.quantity.Force;
 import org.tinygears.uom.quantity.Length;
 import org.tinygears.uom.quantity.Mass;
 import org.tinygears.uom.quantity.Power;
+import org.tinygears.uom.quantity.Pressure;
 import org.tinygears.uom.quantity.QuantityTypes;
 import org.tinygears.uom.quantity.Speed;
 import org.tinygears.uom.quantity.Temperature;
 import org.tinygears.uom.quantity.Time;
 import org.tinygears.uom.quantity.Volume;
+import org.tinygears.uom.systems.CGS;
 import org.tinygears.uom.systems.SI;
 import org.tinygears.uom.systems.USCustomary;
 
@@ -127,6 +129,20 @@ class NativeQuantityTest {
         assertEquals(MathContext.DECIMAL32, rounded.mathContext());
         assertEquals(new BigDecimal("0.03333333"), a.divide(3).toDecimal(MathContext.DECIMAL32).value());
         assertEquals(new BigDecimal("-0.1"), a.negate().value());
+    }
+
+    @Test
+    void namedUnitsTakeTheSystemUnitOfTheirType() {
+        assertSame(Pressure.SYSTEM_UNIT, SI.KILOPASCAL.systemUnit());
+        assertEquals("Pa", SI.KILOPASCAL.systemUnit().symbol());
+        assertEquals("pascal", SI.KILOPASCAL.systemUnit().name());
+        assertSame(Speed.SYSTEM_UNIT, USCustomary.KNOT.systemUnit());
+        assertEquals("N", SI.NEWTON.systemUnit().symbol());
+        // a named unit of no standard type and an unnamed product are labelled by their atoms
+        assertEquals("kg/(m·s)", CGS.POISE.systemUnit().symbol());
+        assertNull(CGS.POISE.systemUnit().name());
+        assertEquals("kg·m^2/s^2", SI.NEWTON.multiply(SI.METRE).systemUnit().symbol());
+        assertEquals("kg/(m·s^2)", SI.KILOPASCAL.multiply(2).systemUnit().symbol());
     }
 
     @Test

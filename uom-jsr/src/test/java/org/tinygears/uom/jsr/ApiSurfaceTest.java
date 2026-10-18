@@ -145,6 +145,7 @@ class ApiSurfaceTest {
                 List.of(
                         "org.tinygears.uom.jsr.spi hidden org.tinygears.uom.jsr.spi.Providers",
                         "org.tinygears.uom.jsr.spi hidden org.tinygears.uom.jsr.spi.QuantityFactories",
+                        "org.tinygears.uom.jsr.spi hidden org.tinygears.uom.jsr.spi.SystemUnits",
                         "org.tinygears.uom.jsr.spi hidden org.tinygears.uom.jsr.spi.UnitTexts"),
                 hidden.stream().filter(l -> l.startsWith("org.tinygears.uom.jsr.spi ")).sorted().toList());
     }

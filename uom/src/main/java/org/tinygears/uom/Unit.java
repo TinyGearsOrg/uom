@@ -125,12 +125,17 @@ public final class Unit<Q extends Quantity<Q>> implements Serializable {
     }
 
     /**
-     * The unscaled unit of the same atoms, of this type.
+     * This unit if it already is a named system unit; for another named unit of a standard quantity type that type's
+     * system unit ({@code Pa} for {@code kPa}); else the unscaled unit of the same atoms, of this type, labelled with
+     * its atoms ({@code N·m} is not a name, so its system unit is {@code kg·m^2/s^2}).
      *
      * @return the system unit
      */
+    @SuppressWarnings("unchecked") // the system unit of Q
     public Unit<Q> systemUnit() {
-        return new Unit<>(type, engine.systemUnit());
+        org.tinygears.uom.engine.Unit system = engine.systemUnit();
+        Unit<?> named = system != engine && engine.name() != null ? QuantityTypes.systemUnit(type) : null;
+        return named != null ? (Unit<Q>) named : new Unit<>(type, system);
     }
 
     /**

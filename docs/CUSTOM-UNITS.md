@@ -403,10 +403,11 @@ a prefixable catalog unit (`km`, `µs`, `GiB`). Labels added with `UnitFormat.la
 `@prefixed u k` checks only the generated `ku` against the built-in symbols, though every prefix `u` takes is
 readable at run time; an exact built-in symbol wins over such a reading.
 
-Symbols are compared as exact strings, so look-alike characters are different symbols: the Greek small mu U+03BC is
-not the micro sign U+00B5 of the metric prefix, and the ohm sign U+2126 is not the Greek capital omega U+03A9 that
-`SI` uses for the ohm. A file can therefore define `μm` (Greek mu) or `Ω` (ohm sign) next to the built-in `µm` and
-`Ω`; avoid such symbols, they are indistinguishable in most fonts.
+Symbols are compared as exact strings, so look-alike characters are different symbols: the ohm sign U+2126 is not the
+Greek capital omega U+03A9 that `SI` uses for the ohm, so a file can define `Ω` (ohm sign) next to the built-in `Ω`;
+avoid such symbols, they are indistinguishable in most fonts. Two spellings are read as the built-in ones (DESIGN
+DR-26): the Greek small mu U+03BC as the micro sign U+00B5 (`μm` is `µm`) and `l` as the litre `L` (`ml` is `mL`), so a
+file cannot define `μm`, `l` or `ml`; formats still write `µ` and `L`.
 
 ## Caveats
 

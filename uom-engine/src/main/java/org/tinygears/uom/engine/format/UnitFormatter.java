@@ -31,7 +31,8 @@ import org.tinygears.uom.engine.parse.FormulaException;
 /**
  * Formats units by label or symbol and parses unit formulas such as {@code kg·m/s^2} over systems of units: the unit
  * format of both APIs. Symbols resolve as labels, then exact symbols, then a metric or binary prefix on a prefixable
- * unit ({@code km}, {@code MiB}). A unit that takes binary prefixes takes only the metric prefixes from kilo up
+ * unit ({@code km}, {@code MiB}), then, for parsing only, the Greek mu (U+03BC) for the micro sign and {@code l} for
+ * the litre ({@code μm}, {@code ml}). A unit that takes binary prefixes takes only the metric prefixes from kilo up
  * ({@code kB}, not {@code dB}). Labels belong to the instance; {@link #with} and {@link #withSuperscripts} copy them.
  * Thread-safe.
  */
@@ -392,6 +393,28 @@ public final class UnitFormatter {
     private record Found(UnitSystem system, Unit unit) {}
 
     private static Found resolve(List<UnitSystem> systems, String symbol) {
+        Found found = resolveSpelled(systems, symbol);
+        String other = otherSpelling(symbol);
+        return found == null && !other.equals(symbol) ? resolveSpelled(systems, other) : found;
+    }
+
+    /**
+     * The spelling of {@code symbol} that the systems use: the micro sign for the Greek mu, which Unicode prefers for
+     * micro, and {@code L} for the litre's {@code l}, which the SI Brochure allows; read only, never written.
+     */
+    static String otherSpelling(String symbol) {
+        String s = symbol.replace('\u03BC', '\u00B5');
+        if (s.endsWith("l")) {
+            String prefix = s.substring(0, s.length() - 1);
+            Prefix p = Prefix.BY_SYMBOL.get(prefix);
+            if (prefix.isEmpty() || p != null && !p.binary()) {
+                return prefix + "L";
+            }
+        }
+        return s;
+    }
+
+    private static Found resolveSpelled(List<UnitSystem> systems, String symbol) {
         for (UnitSystem system : systems) {
             Unit unit = system.lookup(symbol);
             if (unit != null) {

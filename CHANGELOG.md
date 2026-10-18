@@ -23,6 +23,9 @@ Nothing is released yet; the development version is `0.1.0-SNAPSHOT`.
   alternate units are reserved from the start, so a conflicting `alternate("Hz")` fails at that call instead of
   breaking the `Frequency` factory; `rad.alternate("rad")` returns `rad`, as `m.alternate("m")` returns `m` (DESIGN
   DR-23).
+- The system unit of a named unit is the named system unit of its quantity type: `kPa.getSystemUnit()` is `Pa`, not
+  `kg/(m·s^2)` (unnamed products such as `N·m` keep the label of their atoms; DESIGN DR-25). The unit format reads the
+  Greek mu as the micro prefix and `l` as the litre (`μm`, `ml`), and writes `µm` and `mL` (DR-26).
 
 ### Added
 

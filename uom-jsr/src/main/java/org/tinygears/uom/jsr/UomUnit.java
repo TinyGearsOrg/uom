@@ -177,12 +177,19 @@ public final class UomUnit<Q extends Quantity<Q>> implements Unit<Q>, Serializab
 
     /**
      * This unit if it already is a named system unit (it keeps its symbol and name: {@code N}, not
-     * {@code kg·m/s^2}), else the unscaled unit of the same atoms, whose symbol is the label of the atoms. A symbol
-     * built from other units ({@code m·m}) is not a name, so the product of two lengths is {@code m^2}.
+     * {@code kg·m/s^2}); for another named unit the system unit of its standard quantity type ({@code Pa} for
+     * {@code kPa}); else the unscaled unit of the same atoms, whose symbol is the label of the atoms. A symbol built
+     * from other units ({@code m·m}, {@code N·m}) is not a name, so the product of two lengths is {@code m^2}.
      */
     @Override
+    @SuppressWarnings("unchecked") // the type's system unit has this unit's atoms, so it measures Q
     public UomUnit<Q> getSystemUnit() {
-        return wrap(unit.systemUnit());
+        org.tinygears.uom.engine.Unit system = unit.systemUnit();
+        if (system != unit && unit.name() != null
+                && Providers.namedSystemUnit(wrap(system)) instanceof UomUnit<?> named) {
+            return (UomUnit<Q>) named;
+        }
+        return wrap(system);
     }
 
     /** Null for a base unit: ONE or a single atom with exponent 1, both with the identity converter. */

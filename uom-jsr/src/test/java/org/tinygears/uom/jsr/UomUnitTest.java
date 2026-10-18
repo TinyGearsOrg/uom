@@ -120,7 +120,9 @@ class UomUnitTest {
         assertEquals("m^2", systemSymbol(atoms(M, 2)));
         assertEquals("kg/(m·s)", systemSymbol(atoms(KG, 1, M, -1, S, -1)));
         assertEquals("1", systemSymbol(atoms()));
-        assertNull(km().getSystemUnit().getName());
+        // a named unit takes the named system unit of its type; an unnamed scaled one is labelled by its atoms
+        assertEquals("metre", km().getSystemUnit().getName());
+        assertNull(km().multiply(2).getSystemUnit().getName());
     }
 
     @Test

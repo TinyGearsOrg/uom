@@ -1,28 +1,10 @@
 # TODO
 
 Open work only. The item numbers are stable IDs: a gap is a finished item; the decisions, with their rationale and when
-to revisit them, are in [DESIGN.md](DESIGN.md) section 1 (DR-01 to DR-24); the last version of this file with the full
-discussion is `git show 5d734d3:docs/TODO.md`. The groups: gaps against the JSR-385 reference implementation Indriya
-(10, 14), open defects and hardening carried over from the milestone reviews (21 to 32), then the steps before the
+to revisit them, are in [DESIGN.md](DESIGN.md) section 1 (DR-01 to DR-27); the last version of this file with the full
+discussion is `git show 5d734d3:docs/TODO.md`. The groups: positioning against the JSR-385 reference implementation
+Indriya (14), open defects and hardening carried over from the milestone reviews (21 to 32), then the steps before the
 first release ("Release readiness"). Each item says under "Needed by" what, if anything, it blocks.
-
-## 10. Behaviour comparison with Indriya
-
-**Status:** probed and documented. Probes against Indriya 2.2 decided offset arithmetic (DR-01), `asType` with alternate
-units (DR-02), offset-unit products (DR-03) and the provider coexistence (DR-05; `ProviderCoexistenceTest`). Equality,
-`isEquivalentTo`, numbers, formats and parsing are compared in [INDRIYA.md](INDRIYA.md), whose examples print both
-libraries' results and run in `DocsSnippetsTest`. Three differences there are marked open and need a decision:
-- The system unit of a prefixed derived unit prints as its decomposition (`kPa.getSystemUnit()` is `kg/(m·s^2)`, equal
-  to `Pa`; Indriya gives `Pa`). Giving it no symbol lets the format find `Pa`, but `N·m` then prints as `J`.
-- Text Indriya writes does not parse in uom: the Greek mu `μ` (U+03BC) as micro, `℃`, `㎥`, `one`, `%`, `l`, `m2`.
-  Accepting some as parse-only aliases conflicts with "look-alike characters are different symbols" (CUSTOM-UNITS.md).
-- A parsed formula keeps its normalised text as its symbol (`m*s^-1` prints `m·s^-1`, equal to `m/s`); Indriya prints
-  `m/s`.
-
-Symbols that neither library parses (`bar`, `kWh`, `atm`, `mmHg`, `Å`, and `°`, `′`, `″`, which uom spells `deg`,
-`arcmin`, `arcsec`) belong to item 13.
-
-**Needed by:** the three decisions before 1.0.
 
 ## 14. Positioning and community
 

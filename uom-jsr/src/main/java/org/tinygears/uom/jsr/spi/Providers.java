@@ -54,6 +54,17 @@ public final class Providers {
     }
 
     /**
+     * The named system unit of the standard quantity type whose system unit equals {@code unit}, from our provider;
+     * never throws.
+     *
+     * @param unit an unscaled unit
+     * @return the type's system unit, or null if there is none or no provider of ours
+     */
+    public static Unit<?> namedSystemUnit(Unit<?> unit) {
+        return DEFAULT.systemUnit(unit);
+    }
+
+    /**
      * The text of {@code unit} from our provider, if there is one and it has a text; never throws.
      *
      * @param unit the unit
@@ -72,6 +83,16 @@ public final class Providers {
             throw new IllegalArgumentException("no quantity factory for " + type.getName());
         }
         return factory;
+    }
+
+    Unit<?> systemUnit(Unit<?> unit) {
+        try {
+            SystemUnits units = scan(SystemUnits.class, true);
+            return units == null ? null : units.namedSystemUnit(unit);
+        } catch (RuntimeException | ServiceConfigurationError e) {
+            // A unit has a system unit even if no provider is available or one fails.
+            return null;
+        }
     }
 
     String text(Unit<?> unit) {

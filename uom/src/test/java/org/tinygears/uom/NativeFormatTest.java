@@ -76,6 +76,15 @@ class NativeFormatTest {
     }
 
     @Test
+    void greekMuAndLowercaseLitreParse() {
+        assertSame(SI.MICROMETRE, units.parse("\u03BCm"));
+        assertEquals("µm", units.format(units.parse("\u03BCm")));
+        assertSame(SI.MILLILITRE, units.parse("ml"));
+        assertSame(SI.LITRE, units.parse("l"));
+        assertSame(SI.MOLE, units.parse("mol"));
+    }
+
+    @Test
     void labelsBelongToTheFormat() {
         UnitFormat labelled = UnitFormat.standard();
         Unit<Speed> kmh = SI.KILOMETRE.divide(SI.HOUR).asType(Speed.class);

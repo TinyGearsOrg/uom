@@ -45,14 +45,25 @@ class SystemUnitNamesTest {
     }
 
     @Test
-    void otherUnitsHaveTheLabelOfTheirAtomsAsSystemUnit() {
-        UomUnit<?> km = SI.KILOMETRE.getSystemUnit();
-        assertEquals(SI.METRE, km);
-        assertEquals("m", km.getSymbol());
-        assertNull(km.getName());
-        // A symbol built from other units is not a name: the product of two lengths is m^2.
+    void otherNamedUnitsTakeTheSystemUnitOfTheirType() {
+        assertSame(SI.METRE, SI.KILOMETRE.getSystemUnit());
+        assertSame(SI.PASCAL, SI.KILOPASCAL.getSystemUnit());
+        assertEquals("pascal", SI.KILOPASCAL.getSystemUnit().getName());
+        assertSame(SI.JOULE, SI.KILOJOULE.getSystemUnit());
+        assertSame(SpeedFactory.SYSTEM_UNIT, USCustomary.KNOT.getSystemUnit());
+        assertSame(SI.PASCAL, USCustomary.POUND_FORCE_PER_SQUARE_INCH.getSystemUnit());
+        // a named unit of no standard type is labelled by its atoms
+        assertEquals("kg/(m·s)", CGS.POISE.getSystemUnit().getSymbol());
+        assertNull(CGS.POISE.getSystemUnit().getName());
+    }
+
+    @Test
+    void unnamedUnitsHaveTheLabelOfTheirAtomsAsSystemUnit() {
+        // A symbol built from other units is not a name: the product of two lengths is m^2, N·m is not J.
         assertEquals("m^2", SI.METRE.multiply(SI.METRE).getSystemUnit().getSymbol());
         assertEquals("kg·m/s^2", SI.NEWTON.multiply(2).getSystemUnit().getSymbol());
+        assertEquals("kg·m^2/s^2", SI.NEWTON.multiply(SI.METRE).getSystemUnit().getSymbol());
+        assertEquals("kg/(m·s^2)", SI.KILOPASCAL.multiply(2).getSystemUnit().getSymbol());
     }
 
     @Test

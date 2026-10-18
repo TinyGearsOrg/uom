@@ -1757,6 +1757,7 @@ org.tinygears.uom.jsr.quantity VolumeFactory member public static final org.tiny
 org.tinygears.uom.jsr.quantity VolumeFactory type public final class org.tinygears.uom.jsr.quantity.VolumeFactory implements javax.measure.spi.QuantityFactory<javax.measure.quantity.Volume>
 org.tinygears.uom.jsr.spi hidden org.tinygears.uom.jsr.spi.Providers
 org.tinygears.uom.jsr.spi hidden org.tinygears.uom.jsr.spi.QuantityFactories
+org.tinygears.uom.jsr.spi hidden org.tinygears.uom.jsr.spi.SystemUnits
 org.tinygears.uom.jsr.spi hidden org.tinygears.uom.jsr.spi.UnitTexts
 org.tinygears.uom.jsr.systems CGS member public static final java.util.List<org.tinygears.uom.jsr.UomUnit<?>> UNITS
 org.tinygears.uom.jsr.systems CGS member public static final java.util.Map<java.lang.Class<?>, org.tinygears.uom.jsr.UomUnit<?>> PREFERRED
@@ -2056,10 +2057,11 @@ org.tinygears.uom.jsr.systems UomServiceProvider member public <Q extends javax.
 org.tinygears.uom.jsr.systems UomServiceProvider member public int getPriority()
 org.tinygears.uom.jsr.systems UomServiceProvider member public java.lang.String toString()
 org.tinygears.uom.jsr.systems UomServiceProvider member public java.lang.String unitText(javax.measure.Unit<?>)
+org.tinygears.uom.jsr.systems UomServiceProvider member public javax.measure.Unit<?> namedSystemUnit(javax.measure.Unit<?>)
 org.tinygears.uom.jsr.systems UomServiceProvider member public javax.measure.spi.FormatService getFormatService()
 org.tinygears.uom.jsr.systems UomServiceProvider member public javax.measure.spi.SystemOfUnitsService getSystemOfUnitsService()
 org.tinygears.uom.jsr.systems UomServiceProvider member public org.tinygears.uom.jsr.systems.UomServiceProvider()
-org.tinygears.uom.jsr.systems UomServiceProvider type public final class org.tinygears.uom.jsr.systems.UomServiceProvider extends javax.measure.spi.ServiceProvider implements org.tinygears.uom.jsr.spi.QuantityFactories, org.tinygears.uom.jsr.spi.UnitTexts
+org.tinygears.uom.jsr.systems UomServiceProvider type public final class org.tinygears.uom.jsr.systems.UomServiceProvider extends javax.measure.spi.ServiceProvider implements org.tinygears.uom.jsr.spi.QuantityFactories, org.tinygears.uom.jsr.spi.SystemUnits, org.tinygears.uom.jsr.spi.UnitTexts
 org.tinygears.uom.jsr.systems UomSystemOfUnits member public <Q extends javax.measure.Quantity<Q>> javax.measure.Unit<Q> getUnit(java.lang.Class<Q>)
 org.tinygears.uom.jsr.systems UomSystemOfUnits member public boolean isBinaryPrefixable(java.lang.String)
 org.tinygears.uom.jsr.systems UomSystemOfUnits member public boolean isPrefixable(java.lang.String)
