@@ -49,7 +49,9 @@ Parses the workflow and the dependabot configuration (python3 with PyYAML) and f
 exactly `contents: read` or a job sets its own; the workflow mentions `secrets`, `github.token` or `GITHUB_TOKEN`; a
 job is not `build` (matrix JDK 17, 21 and 25), `generated` or `release-check`, lacks `timeout-minutes` or runs a command
 containing deploy, `-Prelease`, publish, central, gpg, `git push`/`git tag` or `gh release`; an action is not
-`actions/checkout` or `actions/setup-java` at a major tag, checkout keeps credentials, setup-java is not Temurin or sets
+`actions/checkout` or `actions/setup-java` pinned to a full commit hash with its version as a comment
+(`@<40 hex digits> # v7.0.1`, the form Dependabot keeps current), checkout keeps credentials, setup-java is not Temurin or sets
 a Maven cache outside `build`; the run commands differ from the CI block of `CONTRIBUTING.md`; dependabot does not
-update Maven (the root and `scripts/consumer`) and GitHub Actions weekly, grouped, with a PR limit. `--self-test` asserts that each of these mutations is
+update Maven (the root and `scripts/consumer`) and GitHub Actions weekly, grouped, with a PR limit and a cooldown of at
+least 7 days. `--self-test` asserts that each of these mutations is
 detected.

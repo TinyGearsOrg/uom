@@ -20,14 +20,15 @@ EXPECTED=${VERIFY_EXPECTED:-$ROOT/scripts/consumer/expected-output.txt}
 
 fail() { echo "verify-release: FAIL: $*" >&2; exit 1; }
 say() { echo "verify-release: $*"; }
+oneline() { local s=$1; echo "${s//$'\n'/ }"; }
 
 USAGE="usage: verify-release.sh [--jdk <JDK home>] [--require-jlink] [--self-test]"
-MODE=release REQUIRE_JLINK= ARGS=()
+MODE=release REQUIRE_JLINK='' ARGS=()
 while [[ $# -gt 0 ]]; do
   case $1 in
     --jdk)
       [[ -x ${2:-}/bin/java ]] || fail "--jdk: no bin/java in '${2:-}'"
-      export JAVA_HOME=$(cd "$2" && pwd); shift 2 ;;
+      JAVA_HOME=$(cd "$2" && pwd); export JAVA_HOME; shift 2 ;;
     --require-jlink) REQUIRE_JLINK=1; shift ;;
     --self-test) MODE=self-test; shift ;;
     --check|--consumer) MODE=${1#--}; ARGS=("${2:?$1 needs a repository}"); shift 2 ;;
@@ -66,7 +67,11 @@ version_of() { # <repo>
 files_of() { # <repo> <artifact> <version>: installed files without the repository bookkeeping
   local dir=$1/org/tinygears/$2/$3
   [[ -d $dir ]] || return 0
-  (cd "$dir" && ls -1 | grep -v -e '^_remote.repositories$' -e '^maven-metadata-local.xml$' || true)
+  local f
+  for f in "$dir"/*; do
+    f=${f##*/}
+    [[ $f == '*' || $f == _remote.repositories || $f == maven-metadata-local.xml ]] || echo "$f"
+  done
 }
 
 check_entries() { # <jar> <allowed regex> <required entries...>
@@ -105,9 +110,9 @@ describe_expected() { # <artifact> <version>
 check() { # <repo>
   local repo=$1 v a got want jar pkg meta lic
   v=$(version_of "$repo")
-  got=$(cd "$repo/org/tinygears" && ls -1 | sort)
+  got=$(for a in "$repo"/org/tinygears/*; do echo "${a##*/}"; done | sort)
   want=$(printf '%s\n' "${PUBLISHED[@]}" "${UNPUBLISHED[@]}" | sort)
-  [[ $got == "$want" ]] || fail "installed artifacts of org.tinygears are [$(echo $got)], expected [$(echo $want)]"
+  [[ $got == "$want" ]] || fail "installed artifacts of org.tinygears are [$(oneline "$got")], expected [$(oneline "$want")]"
   for a in "${PUBLISHED[@]}" "${UNPUBLISHED[@]}"; do
     got=$(files_of "$repo" "$a" "$v" | sort)
     case $a in
@@ -116,7 +121,7 @@ check() { # <repo>
       # installed locally for the reactor, but never deployed: no sources or javadoc jar
       *) want=$(printf '%s\n' "$a-$v.jar" "$a-$v.pom" | sort) ;;
     esac
-    [[ $got == "$want" ]] || fail "$a: installed files are [$(echo $got)], expected [$(echo $want)]"
+    [[ $got == "$want" ]] || fail "$a: installed files are [$(oneline "$got")], expected [$(oneline "$want")]"
   done
   for a in uom-engine uom uom-jsr; do
     jar=$repo/org/tinygears/$a/$v/$a-$v
@@ -145,7 +150,7 @@ check() { # <repo>
     ! grep -q '^Automatic-Module-Name:' <<< "$got" || fail "$a-$v.jar: manifest has Automatic-Module-Name"
     got=$(jar --describe-module --file "$jar.jar" | sed '1s/ .*//; /^$/d')
     [[ $got == "$(describe_expected "$a" "$v")" ]] \
-      || fail "$a-$v.jar: jar --describe-module gives [$(echo $got)], expected [$(echo $(describe_expected "$a" "$v"))]"
+      || fail "$a-$v.jar: jar --describe-module gives [$(oneline "$got")], expected [$(oneline "$(describe_expected "$a" "$v")")]"
   done
   # the POM checks of scripts/check-pom.sh on the installed POMs, laid out as the source tree
   mkdir -p "$tmp/poms"
@@ -192,7 +197,7 @@ consumer() { # <repo>
   cp=$(cat "$c/classpath.txt")
   got=$(tr ':' '\n' <<< "$cp" | xargs -n1 basename | sort)
   [[ $got == "$(printf '%s\n' "uom-$v.jar" "uom-jsr-$v.jar" "uom-engine-$v.jar" unit-api-2.2.jar | sort)" ]] \
-    || fail "consumer: dependencies are [$(echo $got)], expected uom, uom-jsr, uom-engine, unit-api 2.2"
+    || fail "consumer: dependencies are [$(oneline "$got")], expected uom, uom-jsr, uom-engine, unit-api 2.2"
   for a in uom uom-jsr uom-engine; do
     [[ ":$cp:" == *":$repo/org/tinygears/$a/$v/$a-$v.jar:"* ]] || fail "consumer: $a not resolved from $repo"
   done
@@ -221,7 +226,7 @@ jlink_image() {
   got=$("$img/bin/java" --list-modules | sed 's/@.*//' | sort)
   [[ $got == "$(printf '%s\n' java.base java.measure jdk.localedata org.tinygears.uom org.tinygears.uom.consumer \
       org.tinygears.uom.engine org.tinygears.uom.jsr)" ]] \
-    || fail "jlink image modules are [$(echo $got)]"
+    || fail "jlink image modules are [$(oneline "$got")]"
   run_examples "jlink image" "$img/bin/java" -m "org.tinygears.uom.consumer/$MAIN"
   JLINK=ok
 }

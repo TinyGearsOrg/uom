@@ -89,6 +89,20 @@ bash scripts/verify-release.sh --require-jlink
 The workflow is `.github/workflows/ci.yml`; `bash scripts/check-workflows.sh` checks that it runs exactly these
 commands, with a read-only token and no deploy step. `--require-jlink` needs a JDK that can link (Temurin can).
 
+## Pre-commit hooks
+
+`.pre-commit-config.yaml` runs cheap local checks on the files of a commit: end of file, mixed line endings, trailing
+whitespace, `shellcheck` on the scripts and `zizmor` (from severity low) on the workflow and dependabot configuration.
+It works with [prek](https://github.com/j178/prek) or [pre-commit](https://pre-commit.com/); each fetches the hook
+versions pinned in the file:
+
+```
+prek install            # once: run the hooks on every git commit
+prek run --all-files    # check the whole tree
+```
+
+The hooks do not build or test; `mvn -B verify` and CI stay the gate.
+
 ## Conventions
 
 - Every `.java` file starts with the license header of `config/license-header.txt` (`LicenseHeaderTest` checks it;

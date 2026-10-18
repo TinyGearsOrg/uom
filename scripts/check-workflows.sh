@@ -2,7 +2,8 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 # Statically checks the GitHub configuration (milestone 7, D6): the CI workflow builds and checks only (no deploy,
-# no secrets, read-only token, pinned official actions) and runs the commands of CONTRIBUTING.md; dependabot.yml.
+# no secrets, read-only token, official actions pinned to a commit hash) and runs the commands of CONTRIBUTING.md;
+# dependabot.yml.
 # Usage: scripts/check-workflows.sh [--self-test]
 # Requires: bash, python3 with PyYAML.
 # Exits 1 with a message on the first failed check; --self-test mutates copies and asserts each is detected.
@@ -30,8 +31,10 @@ self_test() {
     "release-profile|sub(CI, 'run: mvn -B verify', 'run: mvn -B -Prelease verify')|job build runs a forbidden command: 'mvn -B -Prelease verify'"
     "git-push|sub(CI, 'run: git diff --exit-code', 'run: git diff --exit-code && git push origin HEAD')|job generated runs a forbidden command"
     "gh-release|sub(CI, 'run: git diff --exit-code', 'run: git diff --exit-code\n      - run: gh release create v1')|job generated runs a forbidden command: 'gh release create v1"
-    "unpinned-action|sub(CI, 'actions/checkout@v7', 'actions/checkout@main')|action 'actions/checkout@main' is not an allowed action at a major tag"
-    "third-party-action|sub(CI, 'actions/setup-java@v6', 'someone/setup-java@v6')|action 'someone/setup-java@v6' is not an allowed action at a major tag"
+    "unpinned-action|sub(CI, 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1', 'actions/checkout@v7')|action 'actions/checkout@v7' is not an allowed action pinned to a commit hash"
+    "short-hash|sub(CI, 'checkout@3d3c42e5aac5ba805825da76410c181273ba90b1', 'checkout@3d3c42e5')|action 'actions/checkout@3d3c42e5 # v7.0.1' is not an allowed action pinned to a commit hash"
+    "no-version-comment|sub(CI, 'b1 # v7.0.1', 'b1')|action 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1' is not an allowed action pinned to a commit hash"
+    "third-party-action|sub(CI, 'actions/setup-java@', 'someone/setup-java@')|action 'someone/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1' is not an allowed action"
     "no-timeout|sub(CI, '    timeout-minutes: 45\n', '')|job release-check has no timeout-minutes"
     "no-concurrency|drop(CI, 'concurrency:', 'cancel-in-progress: true')|concurrency group must contain github.ref"
     "matrix|sub(CI, 'java: [17, 21, 25]', 'java: [21, 25]')|build matrix java is [21, 25], expected [17, 21, 25]"
@@ -52,6 +55,7 @@ self_test() {
     "dependabot-groups|drop(DB, '    groups:', 'patterns: [\"*\"]\n')|dependabot maven: needs directories ['/', '/scripts/consumer'], groups and open-pull-requests-limit"
     "dependabot-consumer|sub(DB, ', \"/scripts/consumer\"', '')|dependabot maven: needs directories ['/', '/scripts/consumer']"
     "dependabot-interval|sub(DB, 'interval: weekly', 'interval: daily')|dependabot maven: interval is 'daily', expected 'weekly'"
+    "dependabot-cooldown|sub(DB, 'default-days: 7', 'default-days: 3')|dependabot maven: cooldown default-days is 3, expected at least 7"
   )
   for c in "${cases[@]}"; do
     IFS='|' read -r name mutation expect <<< "$c"
@@ -139,7 +143,8 @@ jobs = ci.get('jobs') or {}
 if sorted(jobs) != ['build', 'generated', 'release-check']:
     fail("jobs are %s, expected ['build', 'generated', 'release-check']" % sorted(jobs))
 FORBIDDEN = re.compile(r'deploy|-Prelease|publish|\bgpg\b|\bgit\s+(push|tag)\b|\bgh\s+release\b|central', re.I)
-ACTION = re.compile(r'actions/(checkout|setup-java)@v\d+')
+# a full commit hash with the release it is, as Dependabot writes it: tags can move, hashes cannot
+ACTION = re.compile(r'actions/(checkout|setup-java)@[0-9a-f]{40} # v\d+\.\d+\.\d+')
 commands = []
 for name, job in jobs.items():
     for key in ('permissions', 'environment', 'secrets', 'uses', 'container', 'services'):
@@ -151,8 +156,6 @@ for name, job in jobs.items():
         fail("job %s runs on %s, expected ubuntu-latest" % (name, job.get('runs-on')))
     for step in job.get('steps') or []:
         if 'uses' in step:
-            if not ACTION.fullmatch(step['uses']):
-                fail("action '%s' is not an allowed action at a major tag" % step['uses'])
             with_ = step.get('with') or {}
             if step['uses'].startswith('actions/checkout@') and with_.get('persist-credentials') is not False:
                 fail("job %s: checkout must set persist-credentials: false" % name)
@@ -170,6 +173,11 @@ for name, job in jobs.items():
                 if FORBIDDEN.search(line):
                     fail("job %s runs a forbidden command: '%s'" % (name, line.strip()))
                 commands.append(line.strip())
+# the version comment is not in the parsed YAML, so the pins are checked on the text
+USES = re.compile(r'^\s*-?\s*uses:\s*(.*?)\s*$', re.M)
+for uses in USES.findall(text):
+    if not ACTION.fullmatch(uses):
+        fail("action '%s' is not an allowed action pinned to a commit hash with its version" % uses)
 matrix = ((jobs['build'].get('strategy') or {}).get('matrix') or {}).get('java')
 if matrix != [17, 21, 25]:
     fail("build matrix java is %s, expected [17, 21, 25]" % matrix)
@@ -192,6 +200,9 @@ for eco, u in sorted(updates.items()):
     interval = (u.get('schedule') or {}).get('interval')
     if interval != 'weekly':
         fail("dependabot %s: interval is '%s', expected 'weekly'" % (eco, interval))
+    days = (u.get('cooldown') or {}).get('default-days')
+    if not isinstance(days, int) or days < 7:
+        fail("dependabot %s: cooldown default-days is %s, expected at least 7" % (eco, days))
     where = u.get('directories') if eco == 'maven' else u.get('directory')
     want = ['/', '/scripts/consumer'] if eco == 'maven' else '/'
     if where != want or not u.get('groups') or not isinstance(u.get('open-pull-requests-limit'), int):

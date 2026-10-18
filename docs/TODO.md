@@ -3,9 +3,9 @@
 Open work only. The item numbers are stable IDs: a gap is a finished item; the decisions, with their rationale and when
 to revisit them, are in [DESIGN.md](DESIGN.md) section 1 (DR-01 to DR-14); the last version of this file with the full
 discussion is `git show 5d734d3:docs/TODO.md`. The groups: gaps against the JSR-385 reference implementation Indriya
-(10, 13, 14), pre-commit (17), open defects and hardening carried over from the milestone reviews (21 to 32), the
-native API (33), then the steps before the first release ("Release readiness"). Each item says under
-"Needed by" what, if anything, it blocks.
+(10, 13, 14), further pre-commit hooks (17), open defects and hardening carried over from the milestone reviews (21 to
+32), the native API (33), then the steps before the first release ("Release readiness"). Each item says under "Needed
+by" what, if anything, it blocks.
 
 ## 10. Behaviour comparison with Indriya
 
@@ -47,14 +47,13 @@ first second implementation. Re-run the TCK in CI and publish the result rather 
 
 **Needed by:** before the first release announcement.
 
-## 17. Pre-commit configuration
+## 17. Further pre-commit hooks
 
-**Status:** not started. There is no `.pre-commit-config.yaml`; the checks run only in CI and by hand (`scripts/check-pom.sh`,
-`scripts/check-javadoc.sh`, `scripts/check-workflows.sh`). Add a config whose hooks are cheap and local: the formatting
-check (`spotless:check`), whitespace and end-of-file fixers, a check that generated files are not edited by hand (regenerate and
-diff, or a header check), the `scripts/check-*.sh` scripts that need no network, and a commit-message hook for the
-conventional prefixes of `CONTRIBUTING.md`. Keep `mvn clean verify` out of the hooks (too slow); CI stays the gate.
-Document the setup in `CONTRIBUTING.md` and `AGENTS.md`.
+**Status:** open. `.pre-commit-config.yaml` has the whitespace, line-ending, `shellcheck` and `zizmor` hooks
+(CONTRIBUTING.md). Candidates still to add, all cheap and local: the formatting check (`spotless:check`), a check that
+generated files are not edited by hand (a header check, or regenerate and diff), the `scripts/check-*.sh` scripts that
+need no network, and a commit-message hook for the conventional prefixes of `CONTRIBUTING.md`. Keep `mvn clean verify`
+out of the hooks (too slow); CI stays the gate.
 
 **Needed by:** nothing.
 
@@ -87,8 +86,7 @@ Document the setup in `CONTRIBUTING.md` and `AGENTS.md`.
 **Status:** open.
 - Add `slf4j-nop` at test scope in `uom-tck`: the TCK run prints "SLF4J: No SLF4J providers were found" (no slf4j entry in
   the POM today). On JDK 21 the TCK also prints "No output directory specified" and leaves an empty root `target/`.
-- CI owner decisions: pin actions to full SHAs (needs `ACTION` in `check-workflows.sh` to accept `@[0-9a-f]{40}`; they
-  are pinned to major tags today); `on: push` plus `pull_request` runs a PR from a branch of this repository twice (a
+- CI owner decisions: `on: push` plus `pull_request` runs a PR from a branch of this repository twice (a
   `main`-only push filter halves it); `cancel-in-progress: true` also cancels superseded runs on `main` (use
   `${{ github.event_name == 'pull_request' }}`); job-level `permissions: {contents: read}` needs `check-workflows.sh`
   changed, which now forbids it.

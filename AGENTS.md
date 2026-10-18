@@ -54,6 +54,8 @@ conflicts with an explicit request from the user, ask before overriding it.
   ([docs/API.md](docs/API.md)).
 - A design decision gets a decision record in [docs/DESIGN.md](docs/DESIGN.md) section 1 (`DR-nn`: decision, why,
   rejected, revisit if). [docs/TODO.md](docs/TODO.md) lists open work only: remove an item when it is done.
+- Run the hooks of `.pre-commit-config.yaml` before you finish: `prek run --all-files` (or `pre-commit run
+  --all-files`); they fix whitespace and check the scripts and workflows ([CONTRIBUTING.md](CONTRIBUTING.md)).
 - Documentation is concise and technical, and every statement must match the code and the commands. Check a claim
   (run it, read the code) before writing it down.
 

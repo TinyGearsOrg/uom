@@ -70,6 +70,9 @@ Nothing is released yet; the development version is `0.1.0-SNAPSHOT`.
   reproducible jars, the public API definition and its pin ([docs/API.md](docs/API.md)), the generated unit table
   ([docs/UNITS.md](docs/UNITS.md)), the user documentation, the release verification script and a CI workflow
   (JDK 17, 21 and 25).
+- Pre-commit hooks (`.pre-commit-config.yaml`, for prek or pre-commit): end of file, line endings, trailing
+  whitespace, shellcheck and zizmor. The CI actions are pinned to commit hashes, and Dependabot proposes an update
+  after a cooldown of 7 days.
 - Java 17 is the baseline (was 21); releases are still built with JDK 21.
 - `UomQuantity`, implemented by every quantity of this library and extended by the typed interfaces: `as(Class)`
   narrows to a typed interface (`length.divide(time).as(Speed.class)`), `isCloseTo` compares within a relative or an
