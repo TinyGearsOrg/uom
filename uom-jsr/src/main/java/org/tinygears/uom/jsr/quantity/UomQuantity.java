@@ -104,7 +104,7 @@ public interface UomQuantity<Q extends Quantity<Q>, R extends UomQuantity<Q, R>>
     R toDouble();
 
     /**
-     * The same quantity as a decimal rounded to {@code mc}, which becomes its context; a precision over 100000
+     * The same quantity as a decimal rounded to {@code mc}, which becomes its context; a precision over 50000
      * throws ArithmeticException. JSR-385 has no number-type conversion.
      *
      * @param mc the math context of the result

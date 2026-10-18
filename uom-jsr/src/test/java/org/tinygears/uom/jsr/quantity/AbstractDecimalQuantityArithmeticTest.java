@@ -467,9 +467,12 @@ class AbstractDecimalQuantityArithmeticTest {
         assertTimeoutPreemptively(Duration.ofSeconds(1), () -> {
             assertDecimal("1E+99999", METRE, q("1e99999", METRE).add(q("1", METRE)));
             assertDecimal("1E+99999", KILOMETRE, q("1e99999", KILOMETRE).add(q("1e-99999", METRE)));
+            // The exact sum has 100000 digits, over the digit bound.
             assertEquals(
-                    100_000,
-                    ((BigDecimal) q("1e99999", METRE, UNLIMITED).add(q("1", METRE, UNLIMITED)).getValue()).precision());
+                    "too many digits: 100000",
+                    assertThrows(
+                            ArithmeticException.class,
+                            () -> q("1e99999", METRE, UNLIMITED).add(q("1", METRE, UNLIMITED))).getMessage());
             assertEquals(1, q("1e99999", CELSIUS).compareTo(q("1e-99999", KELVIN)));
             assertDecimal("2E+99999", CELSIUS, q("1e99999", CELSIUS).multiply(2));
         });
@@ -542,11 +545,10 @@ class AbstractDecimalQuantityArithmeticTest {
 
     @Test
     void irrationalFactorsCostDigitsOfTheContextNotOfTheOperand() {
-        // A two-million-digit operand once needed pi to two million digits; the enclosure needs only a few dozen.
-        // 10^2000000 / 3, built without parsing two million digits
-        BigDecimal value = new BigDecimal(BigInteger.TEN.pow(2_000_000).divide(BigInteger.valueOf(3)));
+        // Comparing with an operand of 49999 digits needs pi to a few dozen digits, not to the operand's length.
+        BigDecimal value = new BigDecimal(BigInteger.TEN.pow(49_999).divide(BigInteger.valueOf(3)));
         TestLengthDecimalImpl big = new TestLengthDecimalImpl(value, METRE, Quantity.Scale.ABSOLUTE, UNLIMITED);
-        int sign = assertTimeoutPreemptively(Duration.ofSeconds(10), () -> big.compareTo(q("1", PI_M)));
+        int sign = assertTimeoutPreemptively(Duration.ofSeconds(5), () -> big.compareTo(q("1", PI_M)));
         assertEquals(1, sign);
     }
 

@@ -88,7 +88,8 @@ public final class FrequencyFactory implements QuantityFactory<javax.measure.qua
 
     /**
      * A decimal quantity with context {@code mc}; the value is kept as given, not rounded. A precision over
-     * 100000 throws ArithmeticException; a unit of another implementation UnconvertibleException.
+     * 50000 or a value of more than 50000 digits throws ArithmeticException; a unit of another
+     * implementation UnconvertibleException.
      *
      * @param value the value
      * @param unit the unit

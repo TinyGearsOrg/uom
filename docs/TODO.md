@@ -58,15 +58,6 @@ Document the setup in `CONTRIBUTING.md` and `AGENTS.md`.
 
 **Needed by:** nothing.
 
-## 22. Decimal arithmetic residuals
-
-**Status:** open.
-- Cost: a huge integer parses with a full superlinear `BigDecimal` parse (no digit bound at parse time; two million
-  digits take tens of seconds). Only the scale and quantity contexts are bounded. At precision 100000 inexact results below
-  1 throw `ArithmeticException("scale out of range")`.
-
-**Needed by:** decide before 1.0.
-
 ## 23. Alternate-unit registry (global state)
 
 **Status:** open, decision needed. Alternate units (`~` lines, `UomUnit.alternate`) register in one JVM-wide registry.

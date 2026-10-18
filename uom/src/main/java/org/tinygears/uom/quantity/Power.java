@@ -81,7 +81,8 @@ public interface Power extends Quantity<Power> {
 
     /**
      * A decimal quantity with context {@code mc}; the value is kept as given, not rounded. A scale of the value
-     * or a precision of {@code mc} over 100000 throws ArithmeticException.
+     * beyond 100000, a value of more than 50000 digits or a precision of {@code mc} over 50000 throws
+     * ArithmeticException.
      *
      * @param value the value
      * @param unit the unit

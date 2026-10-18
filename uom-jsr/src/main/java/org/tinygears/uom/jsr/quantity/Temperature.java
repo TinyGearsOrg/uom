@@ -72,7 +72,7 @@ public interface Temperature
 
     /**
      * A decimal quantity with context {@code mc}; the value is kept as given, not rounded. A precision over
-     * 100000 throws ArithmeticException.
+     * 50000 or a value of more than 50000 digits throws ArithmeticException.
      *
      * @param value the value
      * @param unit the unit

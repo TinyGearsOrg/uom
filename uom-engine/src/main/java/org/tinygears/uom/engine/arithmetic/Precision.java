@@ -23,8 +23,12 @@ public final class Precision {
     /** Largest absolute scale accepted for a {@link BigDecimal} quantity value. */
     public static final int MAX_SCALE = 100_000;
 
-    /** Largest context precision: it caps the digits, so the work, of every rounded result. */
-    public static final int MAX_PRECISION = 100_000;
+    /**
+     * Largest context precision and largest number of digits of a {@link BigDecimal} quantity value: it caps the
+     * digits, so the work, of every value and rounded result. Half of {@link #MAX_SCALE}, so that a result rounded to
+     * any allowed precision keeps a valid scale down to a magnitude of {@code 1e-50000}.
+     */
+    public static final int MAX_PRECISION = 50_000;
 
     private static final BigDecimal DOUBLE_TOLERANCE = BigDecimal.valueOf(DoubleArithmetic.EQUIVALENCE_TOLERANCE);
 
@@ -76,19 +80,20 @@ public final class Precision {
     }
 
     /**
-     * {@code n} as a BigDecimal, a double as its shortest decimal; a BigDecimal beyond the scale bound throws, so it
+     * {@code n} as a BigDecimal, a double as its shortest decimal; a BigDecimal or BigInteger beyond the scale or digit bound
+     * throws, so it
      * never reaches the arithmetic.
      *
      * @param n the number
      * @return the decimal
-     * @throws ArithmeticException if {@code n} is NaN, infinite or a BigDecimal beyond the scale bound
+     * @throws ArithmeticException if {@code n} is NaN, infinite or beyond the scale or digit bound
      */
     public static BigDecimal toDecimal(Number n) {
         if (n instanceof BigDecimal b) {
             return checked(b);
         }
         if (n instanceof BigInteger i) {
-            return new BigDecimal(i);
+            return checked(new BigDecimal(i));
         }
         if (kind(n) == Kind.EXACT) {
             return BigDecimal.valueOf(n.longValue());
@@ -136,15 +141,18 @@ public final class Precision {
     }
 
     /**
-     * {@code v} if its scale is within {@link #MAX_SCALE}.
+     * {@code v} if its scale is within {@link #MAX_SCALE} and it has at most {@link #MAX_PRECISION} digits.
      *
      * @param v the value
      * @return {@code v}
-     * @throws ArithmeticException if the scale is out of range
+     * @throws ArithmeticException if the scale or the number of digits is out of range
      */
     public static BigDecimal checked(BigDecimal v) {
         if (Math.abs((long) v.scale()) > MAX_SCALE) {
             throw new ArithmeticException("scale out of range: " + v.scale());
+        }
+        if (v.precision() > MAX_PRECISION) {
+            throw new ArithmeticException("too many digits: " + v.precision());
         }
         return v;
     }

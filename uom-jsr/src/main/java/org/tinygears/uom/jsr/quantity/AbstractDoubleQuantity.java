@@ -161,7 +161,7 @@ public abstract class AbstractDoubleQuantity<Q extends Quantity<Q>, R extends Uo
 
     /**
      * The same quantity as a decimal: the value as written ({@link BigDecimal#valueOf(double)}), rounded to
-     * {@code mc}, which becomes its context. NaN, infinity or a precision of {@code mc} over 100000 throws
+     * {@code mc}, which becomes its context. NaN, infinity or a precision of {@code mc} over 50000 throws
      * {@link ArithmeticException}.
      *
      * @param mc the context of the result

@@ -12,6 +12,7 @@ package org.tinygears.uom.jsr.quantity;
 
 import java.lang.reflect.Proxy;
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.math.MathContext;
 import java.time.Duration;
 import javax.measure.Quantity;
@@ -87,6 +88,29 @@ class AbstractDecimalQuantityTest {
         assertEquals(-100_000, q("1e+100000", METRE).getValue().scale());
         assertThrows(ArithmeticException.class, () -> q("1e-100001", METRE));
         assertThrows(ArithmeticException.class, () -> q("1e+100001", METRE));
+    }
+
+    @Test
+    void digitsAndPrecisionAreBounded() {
+        MathContext max = new MathContext(AbstractDecimalQuantity.MAX_PRECISION);
+        BigDecimal third = (BigDecimal) new TestLengthDecimalImpl(
+                new BigDecimal("0.1"),
+                METRE,
+                Quantity.Scale.ABSOLUTE,
+                max).divide(3).getValue();
+        assertEquals(50_000, third.precision());
+        assertEquals(50_001, third.scale());
+        BigDecimal longest = new BigDecimal(BigInteger.TEN.pow(50_000).subtract(BigInteger.ONE), 7);
+        assertEquals(longest, new TestLengthDecimalImpl(longest, METRE).getValue());
+        BigDecimal over = new BigDecimal(BigInteger.TEN.pow(50_000));
+        assertEquals(
+                "too many digits: 50001",
+                assertThrows(ArithmeticException.class, () -> new TestLengthDecimalImpl(over, METRE)).getMessage());
+        assertEquals(
+                "too many digits: 50001",
+                assertThrows(
+                        ArithmeticException.class,
+                        () -> UntypedDecimalQuantity.of(over, METRE, MathContext.UNLIMITED)).getMessage());
     }
 
     @Test
@@ -228,9 +252,8 @@ class AbstractDecimalQuantityTest {
         assertSame(three, r.mathContext());
         assertThrows(NullPointerException.class, () -> q.withMathContext(null));
         assertEquals(
-                "precision out of range: 100001",
-                assertThrows(ArithmeticException.class, () -> q.withMathContext(new MathContext(100_001)))
-                        .getMessage());
+                "precision out of range: 50001",
+                assertThrows(ArithmeticException.class, () -> q.withMathContext(new MathContext(50_001))).getMessage());
     }
 
     @Test

@@ -15,6 +15,10 @@ Nothing is released yet; the development version is `0.1.0-SNAPSHOT`.
   `org.tinygears.uom.jsr`, packages `org.tinygears.uom.jsr.*`, with `Jsr`, the conversion to and from `uom`). The
   former `uom-core` and the JSR-385 `uom` are merged into `uom-jsr`; the entries below name the modules of their time
   (DESIGN DR-21, docs/NATIVE-API.md).
+- Decimal values and context precisions are bounded to 50000 digits (`MAX_PRECISION`, before 100000 and for the
+  context only): creation, arithmetic (exact `UNLIMITED` results included) and the serial form throw beyond it, and
+  the quantity format refuses a longer number before parsing it. At precision 50000 a result below 1 no longer
+  passes the scale bound (DESIGN DR-22).
 
 ### Added
 

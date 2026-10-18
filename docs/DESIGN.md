@@ -381,6 +381,20 @@ behaviour for users is in the linked documents. The full discussion and probe re
   native API gain; then one of the rejected options.
 - *See.* docs/NATIVE-API.md; `NativeQuantityTest`, `ParityTest`, `RelationsParserTest`, `NativeGenerationTest`.
 
+**DR-22 Decimal values and contexts are bounded to 50000 digits.**
+- *Decision.* `MAX_PRECISION` is 50000, half of `MAX_SCALE` (100000), and bounds both the precision of a context and
+  the digits of every decimal value: at creation, after each operation (an exact result in `UNLIMITED` included), in
+  the serial form and in the quantity format, which refuses a longer number before the `BigDecimal` parse.
+- *Why.* At a precision equal to the scale bound, inexact results below 1 passed the scale bound (`0.1 m / 3` at
+  precision 100000 threw `scale out of range`); at half of it they stay valid down to 1e-50000. The `BigDecimal`
+  parse is quadratic in the digits (100000 in 0.1 s, a million in 11 s), so an unbounded number text cost seconds; the
+  digit count is linear and checked first.
+- *Rejected.* Keeping 100000 and documenting the throw. A digit bound at the format only: arithmetic in `UNLIMITED`
+  could still build values the format and the serial form would refuse.
+- *Revisit if.* A use case needs exact values or contexts of more than 50000 digits.
+- *See.* `Precision`, `NumberText`; `AbstractDecimalQuantityTest.digitsAndPrecisionAreBounded`,
+  `DecimalParseTest.digitsBeyondTheBoundAreAParseError`, `NativeFormatTest`, `QuantitySerializationTest`.
+
 ## 2. Modules and data flow
 
 ```
@@ -566,12 +580,14 @@ The generator writes all 33 types of `data/quantity-types.txt`: 133 files (four 
     `BigDecimal` operand value or scalar (`ArithmeticException`, before any arithmetic); products and quotients whose
     scale passes the bound throw, zeros included. Zero offsets are skipped, so a result may have a different scale
     than before (`toString` and `scale()` only). Exact conversions do not align far-apart scales (`AffineConverter`),
-    so absurd scales stay fast. Likewise the precision of a decimal quantity's `MathContext` is limited to 100_000
-    (`ArithmeticException` at construction, so in `toDecimal(mc)` and every factory taking a context; a serialized
+    so absurd scales stay fast. Likewise the precision of a decimal quantity's `MathContext` and the digits of every
+    decimal value are limited to 50_000, half the scale bound, so a result rounded to any allowed precision keeps a
+    valid scale down to 1e-50000 (DR-22; `ArithmeticException` at construction, so in `toDecimal(mc)` and every
+    factory taking a context, and for a result of more digits, exact results in `UNLIMITED` included; a serialized
     form beyond it is an `InvalidObjectException`). The bound caps the work of every rounded result; it is separate
-    from the scale bound, which it does not imply (a value near 1e60000 with 150000 digits has a scale under 100000).
-    At precision 100000 rational conversions and arithmetic take milliseconds; the first use of pi at that precision computes
-    it (about 0.6 s on JDK 25, 2.5 s on JDK 21). Exact quotients avoid JDK 21's quadratic trailing-zero stripping in
+    from the scale bound, which it does not imply (a value near 1e40000 with 50000 digits has a scale under 10000).
+    At precision 50000 rational conversions and arithmetic take milliseconds; the first use of pi at that precision
+    computes it. Exact quotients avoid JDK 21's quadratic trailing-zero stripping in
     `BigDecimal.divide` (`Decimals.divide`, package `internal`, not API).
   - **Explicit conversions (D10).** `toDouble()` throws `ArithmeticException` for a value outside the `double` range;
     `toDecimal(mc)` rounds to `mc`, on both implementations. `asType` keeps the receiver's `MathContext` and never changes
@@ -773,7 +789,8 @@ statC:statcoulomb    1|2997924580 C           # exact fraction
   trips. `withDecimals(mc)` parses to typed decimal quantities through the standard factories plus `withMathContext`
   (else `UntypedDecimalQuantity`), keeping every digit and the scale (`1.50 km` has scale 2), scale `ABSOLUTE`; NaN
   and infinity are errors, ROOT accepts ASCII digits only, and a value scale beyond ±100000
-  (`AbstractDecimalQuantity.MAX_SCALE`) is a `MeasurementParseException` checked in linear time before the unit;
+  (`AbstractDecimalQuantity.MAX_SCALE`) or more than 50000 digits (`MAX_PRECISION`) is a `MeasurementParseException`
+  checked in linear time before the unit and before the `BigDecimal` parse;
   `withDecimals(null)` parses `double`s again. A standard type whose factory fails to initialise parses as untyped and
   is logged (`System.Logger`, `WARNING`). `UomFormatService` keeps the ROOT format.
 - **Consistency test.** `SiCatalogTest` checks every definition of `si.units` against the
@@ -816,7 +833,7 @@ statC:statcoulomb    1|2997924580 C           # exact fraction
     and `Untyped`, never `Class.forName`), unit, `Scale`, value (raw bits, or unscaled bytes and scale) and
     `MathContext`. A typed read resolves the provider first, creates through
     `Providers.quantityFactory(type)` and restores the exact value, scale and context; a user
-    subclass reads back as the provider's class. Scale and precision beyond 100000, a unit of another dimension, an
+    subclass reads back as the provider's class. A scale beyond 100000, a precision or value of more than 50000 digits, a unit of another dimension, an
     unknown type or null fields are `InvalidObjectException`s.
   - The JDK allocates stream arrays and strings before the proxies run, so untrusted streams need an
     `ObjectInputFilter` (README). Systems, formats, services and converter caches are not serializable. The form is

@@ -16,6 +16,7 @@ import java.math.BigDecimal;
 import java.math.MathContext;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.Locale;
 
 import org.junit.jupiter.api.Test;
@@ -34,6 +35,7 @@ import org.tinygears.uom.systems.USCustomary;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** The native unit and quantity formats, systems, {@code toSystem} and run-time {@code .units} files. */
@@ -98,6 +100,22 @@ class NativeFormatTest {
         ParseException e = assertThrows(ParseException.class, () -> quantities.parse("1x km"));
         assertEquals("invalid number '1x'", e.getMessage());
         assertEquals(0, e.position());
+    }
+
+    @Test
+    void decimalDigitsAreBoundedBeforeTheParse() {
+        QuantityFormat decimals = quantities.withDecimals(MathContext.DECIMAL64);
+        assertEquals(50_000, ((BigDecimal) decimals.parse("0.0" + "4".repeat(50_000) + " m").value()).precision());
+        ParseException e = assertThrows(ParseException.class, () -> decimals.parse(" 4" + "0".repeat(50_000) + " m"));
+        assertEquals("invalid number: more than 50000 digits", e.getMessage());
+        assertEquals(1, e.position());
+        // ten million digits would take minutes in the BigDecimal parse
+        String huge = "9".repeat(10_000_000) + " m";
+        assertEquals(
+                "invalid number: more than 50000 digits",
+                assertTimeoutPreemptively(
+                        Duration.ofSeconds(2),
+                        () -> assertThrows(ParseException.class, () -> decimals.parse(huge))).getMessage());
     }
 
     @Test

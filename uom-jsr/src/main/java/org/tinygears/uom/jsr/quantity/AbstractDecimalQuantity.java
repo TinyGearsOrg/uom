@@ -35,9 +35,10 @@ import org.tinygears.uom.jsr.spi.Providers;
  * conversions. The {@link MathContext} rounds every computed result and is not part of equality; creation and
  * {@link #negate()} keep the value as given. {@link MathContext#UNLIMITED} keeps results exact where they terminate;
  * non-terminating quotients and irrational conversions fall back to {@code DECIMAL128} with {@code HALF_EVEN},
- * whatever the rounding mode. A {@link BigDecimal} operand value or scalar whose scale exceeds ±100000 throws
- * {@link ArithmeticException}, as does a {@link MathContext} precision over 100000 (at construction, so in
- * {@link #toDecimal(MathContext)} and every factory taking a context). {@link #toDecimal(MathContext)} rounds to a
+ * whatever the rounding mode. A {@link BigDecimal} value, operand or scalar whose scale exceeds ±100000 or that
+ * has more than 50000 digits throws {@link ArithmeticException}, results of arithmetic included (an exact result in
+ * {@code UNLIMITED} can grow past the bound), as does a {@link MathContext} precision over 50000 (at construction, so
+ * in {@link #toDecimal(MathContext)} and every factory taking a context). {@link #toDecimal(MathContext)} rounds to a
  * new context; {@link #withMathContext(MathContext)}, used by the quantity format, keeps the value exactly. A {@code double}
  * operand (of {@code add}, {@code subtract}, {@code multiply}, {@code divide} and {@code compareTo}) is read as its
  * shortest decimal ({@link BigDecimal#valueOf(double)}) and adopts this context, so the result is decimal; a NaN or
@@ -61,7 +62,7 @@ public abstract class AbstractDecimalQuantity<Q extends Quantity<Q>, R extends U
     /** The largest absolute scale of a value or {@link BigDecimal} operand: 100000. */
     public static final int MAX_SCALE = Precision.MAX_SCALE;
 
-    /** The largest precision of a context: 100000. */
+    /** The largest precision of a context and the most digits of a value: 50000, half of {@link #MAX_SCALE}. */
     public static final int MAX_PRECISION = Precision.MAX_PRECISION;
 
     /** The value. */
@@ -74,8 +75,8 @@ public abstract class AbstractDecimalQuantity<Q extends Quantity<Q>, R extends U
     private final MathContext mathContext;
 
     /**
-     * Throws {@link ArithmeticException} if the scale of {@code value} exceeds 100000 in magnitude or the precision
-     * of {@code mathContext} exceeds 100000.
+     * Throws {@link ArithmeticException} if the scale of {@code value} exceeds 100000 in magnitude, it has more than
+     * 50000 digits or the precision of {@code mathContext} exceeds 50000.
      *
      * @param value the value
      * @param unit the unit
@@ -202,7 +203,7 @@ public abstract class AbstractDecimalQuantity<Q extends Quantity<Q>, R extends U
     /**
      * The same quantity with its value rounded to {@code mc}, which becomes its context. Throws
      * {@link ArithmeticException} if the result's scale exceeds the bound of ±100000 (conversion or rounding can
-     * push a value past it) or the precision of {@code mc} exceeds 100000.
+     * push a value past it) or the precision of {@code mc} exceeds 50000.
      *
      * @param mc the context of the result
      * @return the rounded quantity
@@ -214,7 +215,7 @@ public abstract class AbstractDecimalQuantity<Q extends Quantity<Q>, R extends U
     /**
      * The same quantity with context {@code mc}; unlike {@link #toDecimal(MathContext)} the value is kept exactly,
      * digits beyond the precision of {@code mc} included; used by the quantity format's decimal parse. Throws
-     * {@link ArithmeticException} if the precision of {@code mc} exceeds 100000.
+     * {@link ArithmeticException} if the precision of {@code mc} exceeds 50000.
      *
      * @param mc the context of the result
      * @return the quantity with the new context
@@ -446,8 +447,8 @@ public abstract class AbstractDecimalQuantity<Q extends Quantity<Q>, R extends U
     /**
      * Writes the type, unit, scale, the value's unscaled bytes and scale, and the context; reading creates the
      * quantity through the factory of this implementation's provider and keeps value and context
-     * unrounded. A type outside the 33 standard quantity interfaces and {@link Untyped}, an unscaled value over
-     * 65536 bytes or a context precision over 100000 throws {@link java.io.NotSerializableException}.
+     * unrounded. A type outside the 33 standard quantity interfaces and {@link Untyped} or a context precision over
+     * 50000 throws {@link java.io.NotSerializableException}.
      *
      * @return the proxy
      * @throws ObjectStreamException if the quantity cannot be serialized

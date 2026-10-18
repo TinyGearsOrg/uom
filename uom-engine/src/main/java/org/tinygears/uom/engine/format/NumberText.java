@@ -136,11 +136,13 @@ public final class NumberText {
      * @param grouping whether a grouping separator is allowed between integer digits
      * @param decimal whether to read a decimal
      * @param maxScale the largest absolute scale of a decimal
+     * @param maxDigits the largest number of significant digits of a decimal
      * @return the number
      * @throws TextParseException for an invalid or missing number, a misplaced grouping separator, and for a
-     *     decimal NaN, infinity or a scale beyond {@code maxScale}
+     *     decimal NaN, infinity, a scale beyond {@code maxScale} or more than {@code maxDigits} significant digits,
+     *     each checked in linear time before the decimal is built
      */
-    public Number read(String s, int from, int to, boolean grouping, boolean decimal, int maxScale) {
+    public Number read(String s, int from, int to, boolean grouping, boolean decimal, int maxScale, int maxDigits) {
         String token = s.substring(from, to);
         try {
             String text = normalize(s, from, to, grouping);
@@ -157,6 +159,10 @@ public final class NumberText {
                         "invalid number '" + token + "': scale out of range"
                                 + (scale == Long.MAX_VALUE || scale == Long.MIN_VALUE ? "" : ": " + scale),
                         from);
+            }
+            // new BigDecimal is quadratic in the digits: a million take seconds
+            if (digitsOf(text) > maxDigits) {
+                throw new TextParseException("invalid number: more than " + maxDigits + " digits", from);
             }
             return new BigDecimal(text);
         } catch (NumberFormatException e) {
@@ -209,6 +215,23 @@ public final class NumberText {
             return negative ? Long.MAX_VALUE : Long.MIN_VALUE;
         }
         return fraction - (negative ? -e : e);
+    }
+
+    /** The significant digits of the ASCII number {@code text}, as {@link BigDecimal#precision()} counts them. */
+    static long digitsOf(String text) {
+        long digits = 0;
+        boolean leading = true;
+        for (int i = 0; i < text.length(); i++) {
+            char c = text.charAt(i);
+            if (c == 'E') {
+                break;
+            }
+            if (c >= '0' && c <= '9') {
+                leading &= c == '0';
+                digits += leading ? 0 : 1;
+            }
+        }
+        return Math.max(digits, 1);
     }
 
     /**

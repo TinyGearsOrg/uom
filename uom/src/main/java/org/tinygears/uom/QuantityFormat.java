@@ -87,11 +87,12 @@ public final class QuantityFormat {
 
     /**
      * This format parsing to decimal quantities with context {@code mc}, every digit and the scale of the text kept,
-     * or to {@code double} quantities again if {@code mc} is null.
+     * or to {@code double} quantities again if {@code mc} is null. A number of more than 50000 digits or with a scale
+     * beyond ±100000 is a {@link ParseException}, found before the number is built.
      *
      * @param mc the context of parsed quantities, or null
      * @return the new format
-     * @throws ArithmeticException if the precision of {@code mc} exceeds 100000
+     * @throws ArithmeticException if the precision of {@code mc} exceeds 50000
      */
     public QuantityFormat withDecimals(MathContext mc) {
         if (mc != null) {
@@ -154,7 +155,8 @@ public final class QuantityFormat {
         }
         Number number;
         try {
-            number = numbers.read(s, from, to, grouping, decimals != null, Precision.MAX_SCALE);
+            number = numbers
+                    .read(s, from, to, grouping, decimals != null, Precision.MAX_SCALE, Precision.MAX_PRECISION);
         } catch (TextParseException e) {
             throw new ParseException(e.getMessage(), text, e.position());
         }

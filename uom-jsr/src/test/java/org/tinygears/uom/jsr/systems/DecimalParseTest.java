@@ -336,9 +336,9 @@ class DecimalParseTest {
     void contextIsCheckedAtWithDecimals() {
         ArithmeticException e = assertThrows(
                 ArithmeticException.class,
-                () -> ROOT.withDecimals(new MathContext(100_001)));
-        assertEquals("precision out of range: 100001", e.getMessage());
-        MathContext max = new MathContext(100_000, RoundingMode.DOWN);
+                () -> ROOT.withDecimals(new MathContext(50_001)));
+        assertEquals("precision out of range: 50001", e.getMessage());
+        MathContext max = new MathContext(50_000, RoundingMode.DOWN);
         assertEquals(max, ROOT.withDecimals(max).getDecimalContext());
     }
 
@@ -487,17 +487,35 @@ class DecimalParseTest {
     }
 
     @Test
-    void hundredThousandDigitsParseQuickly() {
-        String digits = "7".repeat(100_000);
-        String text = "-" + digits.substring(0, 50_000) + "." + digits.substring(50_000) + " m";
+    void fiftyThousandDigitsParseQuickly() {
+        String digits = "7".repeat(50_000);
+        String text = "-" + digits.substring(0, 25_000) + "." + digits.substring(25_000) + " m";
         UomQuantityFormat de = ROOT.withLocale(Locale.GERMANY).withDecimals(MathContext.DECIMAL64);
         String deText = text.replace('.', ',');
         // generous bound: the parse is well under a second, but CI machines vary
         assertTimeoutPreemptively(Duration.ofSeconds(5), () -> {
             BigDecimal v = (BigDecimal) D64.parse(text).getValue();
-            assertEquals(100_000, v.precision());
-            assertEquals(50_000, v.scale());
+            assertEquals(50_000, v.precision());
+            assertEquals(25_000, v.scale());
             assertEquals(v, de.parse(deText).getValue());
         });
+    }
+
+    @Test
+    void digitsBeyondTheBoundAreAParseError() {
+        // Leading zeros do not count; trailing zeros do, as in BigDecimal.precision().
+        assertEquals(50_000, ((BigDecimal) D64.parse("-00.000" + "1".repeat(50_000) + " m").getValue()).precision());
+        assertEquals(50_000, ((BigDecimal) D64.parse("1" + "0".repeat(49_999) + "E-3 m").getValue()).precision());
+        String message = "invalid number: more than 50000 digits";
+        assertFails(D64, "  1" + "0".repeat(50_000) + " m", message, 2);
+        assertFails(D64, "0.0" + "9".repeat(50_001) + "E+7 m", message, 0);
+        assertFails(
+                D64.withLocale(Locale.GERMANY),
+                "1" + "2".repeat(25_000) + "," + "3".repeat(25_000) + " m",
+                message,
+                0);
+        // Refused before the quadratic BigDecimal parse: ten million digits would take minutes.
+        String huge = "9".repeat(10_000_000) + " m";
+        assertTimeoutPreemptively(Duration.ofSeconds(2), () -> assertFails(D64, huge, message, 0));
     }
 }

@@ -82,8 +82,8 @@ final class QuantityProxy implements Serializable {
     static final String UNTYPED_DOUBLE = "untyped-double";
     static final String UNTYPED_DECIMAL = "untyped-decimal";
 
-    /** Bound on the unscaled bytes of a decimal value. */
-    static final int MAX_VALUE_BYTES = 65_536;
+    /** Bound on the unscaled bytes of a decimal value: the length of the largest value of MAX_PRECISION digits. */
+    static final int MAX_VALUE_BYTES = 20_763;
 
     private static final String VALUE_TOO_LARGE = "invalid quantity: value too large";
 

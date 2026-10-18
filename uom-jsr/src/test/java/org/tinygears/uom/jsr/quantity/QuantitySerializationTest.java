@@ -401,16 +401,22 @@ class QuantitySerializationTest {
 
     @Test
     void valueByteCapIsExact() throws Exception {
-        byte[] max = new byte[QuantityProxy.MAX_VALUE_BYTES];
-        Arrays.fill(max, (byte) 0x7f);
+        BigInteger largest = BigInteger.TEN.pow(AbstractDecimalQuantity.MAX_PRECISION).subtract(BigInteger.ONE);
+        byte[] max = largest.toByteArray();
+        assertEquals(QuantityProxy.MAX_VALUE_BYTES, max.length);
+        assertEquals(QuantityProxy.MAX_VALUE_BYTES, largest.negate().toByteArray().length);
         TestLengthDecimalImpl q = (TestLengthDecimalImpl) deserialize(serialize(decimalProxy(max, 3, 0, "UP")));
-        assertEquals(new BigDecimal(new BigInteger(max), 3), q.getValue());
+        assertEquals(new BigDecimal(largest, 3), q.getValue());
         assertDecimalRoundTrip(q);
+        // Within the byte cap, the digits are still bounded.
+        assertInvalid(
+                "invalid quantity: too many digits: 50001",
+                decimalProxy(BigInteger.TEN.pow(AbstractDecimalQuantity.MAX_PRECISION).toByteArray(), 0, 0, "UP"));
         // The writer refuses what the reader would reject.
         BigDecimal over = new BigDecimal(BigInteger.ONE.shiftLeft(8 * QuantityProxy.MAX_VALUE_BYTES));
         NotSerializableException e = assertThrows(
                 NotSerializableException.class,
-                () -> serialize(new TestLengthDecimalImpl(over, METRE)));
+                () -> QuantityProxy.ofDecimal(Length.class, METRE, Quantity.Scale.ABSOLUTE, over, MAX_CONTEXT));
         assertEquals("invalid quantity: value too large", e.getMessage());
     }
 
@@ -611,19 +617,19 @@ class QuantitySerializationTest {
         }
     }
 
-    private static final MathContext MAX_CONTEXT = new MathContext(100_000, RoundingMode.HALF_UP);
-    private static final MathContext OVER_CONTEXT = new MathContext(100_001, RoundingMode.HALF_UP);
+    private static final MathContext MAX_CONTEXT = new MathContext(50_000, RoundingMode.HALF_UP);
+    private static final MathContext OVER_CONTEXT = new MathContext(50_001, RoundingMode.HALF_UP);
 
     @Test
     void contextPrecisionIsBoundedOnEveryPath() throws Exception {
         assertDecimalRoundTrip(new TestLengthDecimalImpl(BigDecimal.ONE, METRE, Quantity.Scale.ABSOLUTE, MAX_CONTEXT));
         assertEquals(
                 MAX_CONTEXT,
-                ((TestLengthDecimalImpl) deserialize(serialize(decimalProxy(new byte[] { 1 }, 0, 100_000, "HALF_UP"))))
+                ((TestLengthDecimalImpl) deserialize(serialize(decimalProxy(new byte[] { 1 }, 0, 50_000, "HALF_UP"))))
                         .mathContext());
         assertInvalid(
-                "invalid quantity: precision out of range: 100001",
-                decimalProxy(new byte[] { 1 }, 0, 100_001, "HALF_UP"));
+                "invalid quantity: precision out of range: 50001",
+                decimalProxy(new byte[] { 1 }, 0, 50_001, "HALF_UP"));
         assertInvalid(
                 "invalid quantity: precision out of range: 2147483647",
                 decimalProxy(
@@ -638,21 +644,21 @@ class QuantitySerializationTest {
                 NotSerializableException.class,
                 () -> QuantityProxy
                         .ofDecimal(Length.class, METRE, Quantity.Scale.ABSOLUTE, BigDecimal.ONE, OVER_CONTEXT));
-        assertEquals("invalid quantity: precision out of range: 100001", w.getMessage());
+        assertEquals("invalid quantity: precision out of range: 50001", w.getMessage());
         ArithmeticException e = assertThrows(
                 ArithmeticException.class,
                 () -> new TestLengthDecimalImpl(BigDecimal.ONE, METRE, Quantity.Scale.ABSOLUTE, OVER_CONTEXT));
-        assertEquals("precision out of range: 100001", e.getMessage());
+        assertEquals("precision out of range: 50001", e.getMessage());
         e = assertThrows(
                 ArithmeticException.class,
                 () -> UntypedDecimalQuantity.of(BigDecimal.ONE, METRE, new MathContext(Integer.MAX_VALUE)));
         assertEquals("precision out of range: 2147483647", e.getMessage());
         e = assertThrows(ArithmeticException.class, () -> new TestLengthImpl(1.5, METRE).toDecimal(OVER_CONTEXT));
-        assertEquals("precision out of range: 100001", e.getMessage());
+        assertEquals("precision out of range: 50001", e.getMessage());
         e = assertThrows(
                 ArithmeticException.class,
                 () -> new TestLengthDecimalImpl(BigDecimal.ONE, METRE).toDecimal(OVER_CONTEXT));
-        assertEquals("precision out of range: 100001", e.getMessage());
+        assertEquals("precision out of range: 50001", e.getMessage());
         assertEquals(
                 MAX_CONTEXT,
                 ((TestLengthDecimalImpl) new TestLengthImpl(1.5, METRE).toDecimal(MAX_CONTEXT)).mathContext());
@@ -671,8 +677,8 @@ class QuantitySerializationTest {
         try {
             String speed = Speed.class.getName();
             assertInvalid(
-                    "invalid quantity: precision out of range: 100001",
-                    decimalProxy("decimal", speed, KMH, new byte[] { 1 }, 0, 100_001, "UP"));
+                    "invalid quantity: precision out of range: 50001",
+                    decimalProxy("decimal", speed, KMH, new byte[] { 1 }, 0, 50_001, "UP"));
             assertInvalid(
                     "invalid quantity: scale out of range: 100001",
                     decimalProxy("decimal", speed, KMH, new byte[] { 1 }, 100_001, 7, "UP"));
@@ -690,14 +696,14 @@ class QuantitySerializationTest {
                 Quantity.Scale.ABSOLUTE,
                 MAX_CONTEXT);
         UomUnit<Length> foot = METRE.multiply(new BigDecimal("0.3048"));
-        // About 1 s on JDK 21 (mostly pi), well under on JDK 25; the bound only catches quadratic or worse.
+        // Mostly the first computation of pi; the bound only catches quadratic or worse.
         assertTimeoutPreemptively(Duration.ofSeconds(120), () -> {
             assertEquals(new BigDecimal("2.25"), q.multiply(1.5).getValue());
-            assertEquals(100_000, ((BigDecimal) q.divide(7).getValue()).precision());
+            assertEquals(50_000, ((BigDecimal) q.divide(7).getValue()).precision());
             assertEquals(new BigDecimal("0.0015"), q.to(KILOMETRE).getValue());
-            assertEquals(100_000, ((BigDecimal) q.to(foot).getValue()).precision());
+            assertEquals(50_000, ((BigDecimal) q.to(foot).getValue()).precision());
             UomUnit<Length> piMetre = UomUnit.unchecked(METRE.scaledBy(org.tinygears.uom.engine.Factor.PI));
-            assertEquals(100_000, ((BigDecimal) q.to(piMetre).getValue()).precision());
+            assertEquals(50_000, ((BigDecimal) q.to(piMetre).getValue()).precision());
             assertEquals(
                     1,
                     q.compareTo(

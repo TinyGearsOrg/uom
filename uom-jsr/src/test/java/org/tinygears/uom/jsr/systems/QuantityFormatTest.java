@@ -200,10 +200,10 @@ class QuantityFormatTest {
         assertEquals(1.5, doubles.parse("1.50 m").getValue());
         assertEquals(format, doubles);
         assertEquals(
-                "precision out of range: 100001",
-                assertThrows(ArithmeticException.class, () -> format.withDecimals(new MathContext(100_001)))
+                "precision out of range: 50001",
+                assertThrows(ArithmeticException.class, () -> format.withDecimals(new MathContext(50_001)))
                         .getMessage());
-        assertEquals(100_000, format.withDecimals(new MathContext(100_000)).getDecimalContext().getPrecision());
+        assertEquals(50_000, format.withDecimals(new MathContext(50_000)).getDecimalContext().getPrecision());
     }
 
     @Test

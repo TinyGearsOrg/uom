@@ -28,8 +28,8 @@ public final class UntypedDecimalQuantity extends AbstractDecimalQuantity<Untype
     }
 
     /**
-     * An {@code ABSOLUTE} quantity; throws {@link ArithmeticException} if the value's scale exceeds ±100000 or the
-     * precision of {@code mc} exceeds 100000.
+     * An {@code ABSOLUTE} quantity; throws {@link ArithmeticException} if the value's scale exceeds ±100000, it has
+     * more than 50000 digits or the precision of {@code mc} exceeds 50000.
      *
      * @param value the value
      * @param unit the unit

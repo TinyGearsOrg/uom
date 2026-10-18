@@ -126,10 +126,11 @@ public final class UomQuantityFormat implements QuantityFormat {
      * read with the same locale and grouping rules (in ROOT too, so only ASCII digits there), becomes
      * {@code new BigDecimal(text)} with every digit and its scale kept, never rounded to {@code mc} ({@code 1.50 km}
      * has scale 2). The quantity has scale {@code ABSOLUTE} and the standard type of its unit, else it is an
-     * {@link UntypedDecimalQuantity}. NaN, infinity and a value scale beyond ±100000
-     * ({@link AbstractDecimalQuantity#MAX_SCALE}) are {@link MeasurementParseException}s, reported before any unit
-     * error. Throws {@link ArithmeticException}, as the quantities do, if the precision of {@code mc} exceeds 100000
-     * ({@link AbstractDecimalQuantity#MAX_PRECISION}).
+     * {@link UntypedDecimalQuantity}. NaN, infinity, a value scale beyond ±100000
+     * ({@link AbstractDecimalQuantity#MAX_SCALE}) and more than 50000 digits
+     * ({@link AbstractDecimalQuantity#MAX_PRECISION}) are {@link MeasurementParseException}s, reported before any
+     * unit error and before the number is built, so a long text costs linear time. Throws
+     * {@link ArithmeticException}, as the quantities do, if the precision of {@code mc} exceeds 50000.
      *
      * @param mc the context of parsed quantities, or null for {@code double} quantities
      * @return the new format
@@ -241,7 +242,14 @@ public final class UomQuantityFormat implements QuantityFormat {
         String token = s.substring(from, to);
         Number number;
         try {
-            number = numbers.read(s, from, to, grouping, decimals != null, AbstractDecimalQuantity.MAX_SCALE);
+            number = numbers.read(
+                    s,
+                    from,
+                    to,
+                    grouping,
+                    decimals != null,
+                    AbstractDecimalQuantity.MAX_SCALE,
+                    AbstractDecimalQuantity.MAX_PRECISION);
         } catch (TextParseException e) {
             throw new MeasurementParseException(e.getMessage(), csq, e.position());
         }

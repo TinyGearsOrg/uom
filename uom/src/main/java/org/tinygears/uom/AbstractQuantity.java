@@ -49,8 +49,8 @@ public abstract class AbstractQuantity<Q extends Quantity<Q>> implements Quantit
     private final Scale scale;
 
     /**
-     * A {@code double} quantity if {@code decimal} is null, else a decimal one; the decimal's scale and the context's
-     * precision are bounded by 100000.
+     * A {@code double} quantity if {@code decimal} is null, else a decimal one; the decimal's scale is bounded by
+     * 100000, its digits and the context's precision by 50000 ({@code ArithmeticException}).
      *
      * @param value the double value, ignored for a decimal
      * @param decimal the decimal value, or null

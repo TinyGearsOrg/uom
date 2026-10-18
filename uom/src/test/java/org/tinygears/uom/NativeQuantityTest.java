@@ -11,6 +11,7 @@
 package org.tinygears.uom;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.math.MathContext;
 
 import org.junit.jupiter.api.Test;
@@ -126,6 +127,34 @@ class NativeQuantityTest {
         assertEquals(MathContext.DECIMAL32, rounded.mathContext());
         assertEquals(new BigDecimal("0.03333333"), a.divide(3).toDecimal(MathContext.DECIMAL32).value());
         assertEquals(new BigDecimal("-0.1"), a.negate().value());
+    }
+
+    @Test
+    void decimalsAreBoundedInDigitsAndPrecision() {
+        MathContext max = new MathContext(50_000);
+        BigDecimal third = (BigDecimal) Length.of(new BigDecimal("0.1"), SI.METRE, Scale.ABSOLUTE, max).divide(3)
+                .value();
+        assertEquals(50_000, third.precision());
+        assertEquals(50_001, third.scale());
+        BigDecimal longest = new BigDecimal(BigInteger.TEN.pow(50_000).subtract(BigInteger.ONE));
+        assertEquals(longest, Length.of(longest, SI.METRE).value());
+        BigDecimal over = new BigDecimal(BigInteger.TEN.pow(50_000));
+        assertEquals(
+                "too many digits: 50001",
+                assertThrows(ArithmeticException.class, () -> Length.of(over, SI.METRE)).getMessage());
+        assertEquals(
+                "too many digits: 50001",
+                assertThrows(
+                        ArithmeticException.class,
+                        () -> Length.of(longest, SI.METRE, Scale.ABSOLUTE, MathContext.UNLIMITED)
+                                .add(Length.of(BigDecimal.ONE, SI.METRE, Scale.ABSOLUTE, MathContext.UNLIMITED)))
+                        .getMessage());
+        assertEquals(
+                "precision out of range: 50001",
+                assertThrows(
+                        ArithmeticException.class,
+                        () -> Length.of(BigDecimal.ONE, SI.METRE, Scale.ABSOLUTE, new MathContext(50_001)))
+                        .getMessage());
     }
 
     @Test
