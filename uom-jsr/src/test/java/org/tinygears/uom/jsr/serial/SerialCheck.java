@@ -40,11 +40,11 @@ public final class SerialCheck {
         UomUnit<?> degree = (UomUnit<?>) read(Files.readAllBytes(dir.resolve("degree.ser")));
         check("Hz".equals(hz.getSymbol()) && "hertz".equals(hz.getName()), "hertz labels: " + hz);
         check("°".equals(degree.getSymbol()) && "degree".equals(degree.getName()), "degree labels: " + degree);
-        // Reading the first atom loaded the catalogs, which registered rad as SI defines it: it cannot be rebound.
+        // rad is registered from the start as SI defines it, though no catalog is loaded: it cannot be rebound.
         // (That reading itself registers nothing is PoisonCheck's subject, with a symbol of no catalog.)
         try {
             BaseUnits.METRE.alternate("rad");
-            throw new AssertionError("rad bound to metre although the catalogs registered it");
+            throw new AssertionError("rad bound to metre although it is reserved");
         } catch (MeasurementException expected) {
             check(
                     expected.getMessage().equals("symbol rad is already associated to a different unit"),

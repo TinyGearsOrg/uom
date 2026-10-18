@@ -138,12 +138,10 @@ org.tinygears.uom.engine.format hidden org.tinygears.uom.engine.format.UnitSyste
 org.tinygears.uom.engine.internal hidden org.tinygears.uom.engine.internal.AlternateUnits
 org.tinygears.uom.engine.internal hidden org.tinygears.uom.engine.internal.Atoms
 org.tinygears.uom.engine.internal hidden org.tinygears.uom.engine.internal.BoundedCache
-org.tinygears.uom.engine.internal hidden org.tinygears.uom.engine.internal.Catalogs
 org.tinygears.uom.engine.internal hidden org.tinygears.uom.engine.internal.Decimals
 org.tinygears.uom.engine.internal hidden org.tinygears.uom.engine.internal.Interval
 org.tinygears.uom.engine.internal hidden org.tinygears.uom.engine.internal.Irrationals
 org.tinygears.uom.engine.internal hidden org.tinygears.uom.engine.internal.SerialForm
-org.tinygears.uom.engine.internal hidden org.tinygears.uom.engine.internal.UnitCatalogs
 org.tinygears.uom.engine.parse Definition member public final boolean equals(java.lang.Object)
 org.tinygears.uom.engine.parse Definition member public final int hashCode()
 org.tinygears.uom.engine.parse Definition member public final java.lang.String toString()
@@ -1066,7 +1064,6 @@ org.tinygears.uom.jsr module exports org.tinygears.uom.jsr
 org.tinygears.uom.jsr module exports org.tinygears.uom.jsr.quantity
 org.tinygears.uom.jsr module exports org.tinygears.uom.jsr.systems
 org.tinygears.uom.jsr module provides javax.measure.spi.ServiceProvider with [org.tinygears.uom.jsr.systems.UomServiceProvider]
-org.tinygears.uom.jsr module provides org.tinygears.uom.engine.internal.UnitCatalogs with [org.tinygears.uom.jsr.systems.UomServiceProvider]
 org.tinygears.uom.jsr module requires transitive java.measure
 org.tinygears.uom.jsr module requires transitive org.tinygears.uom
 org.tinygears.uom.jsr module requires transitive org.tinygears.uom.engine
@@ -2062,8 +2059,7 @@ org.tinygears.uom.jsr.systems UomServiceProvider member public java.lang.String 
 org.tinygears.uom.jsr.systems UomServiceProvider member public javax.measure.spi.FormatService getFormatService()
 org.tinygears.uom.jsr.systems UomServiceProvider member public javax.measure.spi.SystemOfUnitsService getSystemOfUnitsService()
 org.tinygears.uom.jsr.systems UomServiceProvider member public org.tinygears.uom.jsr.systems.UomServiceProvider()
-org.tinygears.uom.jsr.systems UomServiceProvider member public void loadCatalogs()
-org.tinygears.uom.jsr.systems UomServiceProvider type public final class org.tinygears.uom.jsr.systems.UomServiceProvider extends javax.measure.spi.ServiceProvider implements org.tinygears.uom.jsr.spi.QuantityFactories, org.tinygears.uom.engine.internal.UnitCatalogs, org.tinygears.uom.jsr.spi.UnitTexts
+org.tinygears.uom.jsr.systems UomServiceProvider type public final class org.tinygears.uom.jsr.systems.UomServiceProvider extends javax.measure.spi.ServiceProvider implements org.tinygears.uom.jsr.spi.QuantityFactories, org.tinygears.uom.jsr.spi.UnitTexts
 org.tinygears.uom.jsr.systems UomSystemOfUnits member public <Q extends javax.measure.Quantity<Q>> javax.measure.Unit<Q> getUnit(java.lang.Class<Q>)
 org.tinygears.uom.jsr.systems UomSystemOfUnits member public boolean isBinaryPrefixable(java.lang.String)
 org.tinygears.uom.jsr.systems UomSystemOfUnits member public boolean isPrefixable(java.lang.String)

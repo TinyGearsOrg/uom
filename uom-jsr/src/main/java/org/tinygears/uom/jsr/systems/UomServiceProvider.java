@@ -17,15 +17,14 @@ import javax.measure.spi.QuantityFactory;
 import javax.measure.spi.ServiceProvider;
 import javax.measure.spi.SystemOfUnitsService;
 
-import org.tinygears.uom.engine.internal.UnitCatalogs;
 import org.tinygears.uom.jsr.quantity.QuantityTypes;
 import org.tinygears.uom.jsr.spi.QuantityFactories;
 import org.tinygears.uom.jsr.spi.UnitTexts;
 
 /** The JSR-385 service provider of this implementation. */
-// QuantityFactories and UnitTexts are the core's hooks, UnitCatalogs the engine's service, not API
+// QuantityFactories and UnitTexts are the core's hooks, not API
 @SuppressWarnings("exports")
-public final class UomServiceProvider extends ServiceProvider implements QuantityFactories, UnitCatalogs, UnitTexts {
+public final class UomServiceProvider extends ServiceProvider implements QuantityFactories, UnitTexts {
     private final SystemOfUnitsService systems = new UomSystemOfUnitsService();
     private final FormatService formats = new UomFormatService();
 
@@ -53,12 +52,6 @@ public final class UomServiceProvider extends ServiceProvider implements Quantit
     @Override
     public <Q extends Quantity<Q>> QuantityFactory<Q> getQuantityFactory(Class<Q> quantity) {
         return QuantityTypes.factory(quantity);
-    }
-
-    /** Loads the catalogs of {@link UnitSystems#all()}, which registers their alternate units. */
-    @Override
-    public void loadCatalogs() {
-        UnitSystems.all();
     }
 
     /** Holds the standard format, which is created when the first unnamed unit prints. */

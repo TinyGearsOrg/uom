@@ -9,9 +9,8 @@ completing it runs in five stages: (1) the 33 types generated with typed product
 "Stage 5a" below for the mapping).
 - Done: `uom-engine` holds `Factor`, `Dimension`, `UnitAtom` (with the base atoms), `UnitException`, `Converter`
   (affine, exact, with its steps) and `Unit` (atoms, converter, labels, the algebra and the converter cache) and, in
-  `internal`, the alternate-unit registry, the catalog service (`UnitCatalogs` through `ServiceLoader`, which `uom`
-  provides), products of atoms and the decimal, interval, cache and serial-form helpers. `UomDimension`, `UomUnit`
-  and the package-private `AffineConverter` are the JSR-385 types over them: they add `asType`, the text of an
+  `internal`, the alternate-unit registry, products of atoms and the decimal, interval, cache and serial-form
+  helpers. `UomDimension`, `UomUnit` and the package-private `AffineConverter` are the JSR-385 types over them: they add `asType`, the text of an
   unnamed unit through the provider, the JSR exceptions, and keep the identity of converters and steps.
 - Done: the `.units` parser (`org.tinygears.uom.engine.parse`) evaluates to engine units, with its own table of
   metric and binary prefixes; `UomSystemOfUnits` and `UomUnitFormat` wrap its results as `UomUnit`s, and a formula

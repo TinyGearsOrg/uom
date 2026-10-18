@@ -24,7 +24,4 @@ module org.tinygears.uom.engine {
     exports org.tinygears.uom.engine.format to org.tinygears.uom.jsr, org.tinygears.uom;
     // The quantity arithmetic of both APIs; not API.
     exports org.tinygears.uom.engine.arithmetic to org.tinygears.uom.jsr, org.tinygears.uom;
-
-    // The catalogs of org.tinygears.uom.jsr, loaded before an atom read from a stream counts as unregistered.
-    uses org.tinygears.uom.engine.internal.UnitCatalogs;
 }

@@ -24,6 +24,4 @@ module org.tinygears.uom.jsr {
     exports org.tinygears.uom.jsr.systems;
 
     provides javax.measure.spi.ServiceProvider with org.tinygears.uom.jsr.systems.UomServiceProvider;
-    // Registers the catalogs' alternate units before the engine reads an atom from a stream.
-    provides org.tinygears.uom.engine.internal.UnitCatalogs with org.tinygears.uom.jsr.systems.UomServiceProvider;
 }

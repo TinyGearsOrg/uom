@@ -329,7 +329,7 @@ class UnitSerializationTest {
 
     /**
      * Fresh JVM: a forged atom read before its registration must not break the real one, nor grow the registry. {@code Hq}
-     * is in no catalog: the catalogs register theirs before the first atom is read.
+     * is in no catalog: the built-in alternate units are registered from the start.
      */
     static final class PoisonCheck {
         public static void main(String[] args) throws Exception {

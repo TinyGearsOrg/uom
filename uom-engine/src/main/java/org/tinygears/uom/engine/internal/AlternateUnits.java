@@ -142,8 +142,8 @@ public final class AlternateUnits {
     /**
      * Resolves an atom read from a stream without registering it, so untrusted data cannot bind a symbol: a
      * registered symbol must match (same definition, or the same atom when none is given) and gives the
-     * registered atom; an unregistered one gives an equal, unregistered atom. A symbol is unregistered only once the
-     * catalogs ({@link Catalogs}) are loaded, so a fresh JVM checks a catalog atom as well. Without a definition (a
+     * registered atom; an unregistered one gives an equal, unregistered atom. The built-in alternate units are
+     * registered from the start, so a fresh JVM checks a catalog atom as well. Without a definition (a
      * base atom, or an unregistered atom written again) only symbol and dimension are compared: a weaker check, but
      * harmless since atoms are equal by symbol and dimension.
      *
@@ -167,10 +167,6 @@ public final class AlternateUnits {
             }
         }
         Registered existing = REGISTRY.get(symbol);
-        if (existing == null) {
-            Catalogs.load();
-            existing = REGISTRY.get(symbol);
-        }
         return existing == null ? atom : matching(existing, atom, atoms);
     }
 

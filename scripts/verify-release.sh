@@ -88,7 +88,7 @@ describe_expected() { # <artifact> <version>
   case $1 in
     uom-engine) printf '%s\n' "org.tinygears.uom.engine@$2" 'exports org.tinygears.uom.engine' \
       'exports org.tinygears.uom.engine.parse' \
-      'requires java.base mandated' 'uses org.tinygears.uom.engine.internal.UnitCatalogs' \
+      'requires java.base mandated' \
       'qualified exports org.tinygears.uom.engine.arithmetic to org.tinygears.uom org.tinygears.uom.jsr' \
       'qualified exports org.tinygears.uom.engine.format to org.tinygears.uom org.tinygears.uom.jsr' \
       'qualified exports org.tinygears.uom.engine.internal to org.tinygears.uom org.tinygears.uom.jsr' ;;
@@ -101,7 +101,6 @@ describe_expected() { # <artifact> <version>
       'requires java.measure transitive' 'requires org.tinygears.uom transitive' \
       'requires org.tinygears.uom.engine transitive' \
       'provides javax.measure.spi.ServiceProvider with org.tinygears.uom.jsr.systems.UomServiceProvider' \
-      'provides org.tinygears.uom.engine.internal.UnitCatalogs with org.tinygears.uom.jsr.systems.UomServiceProvider' \
       'contains org.tinygears.uom.jsr.spi' ;;
   esac
 }
@@ -126,7 +125,7 @@ check() { # <repo>
   for a in uom-engine uom uom-jsr; do
     jar=$repo/org/tinygears/$a/$v/$a-$v
     case $a in
-      uom-jsr) pkg='org/tinygears/uom/jsr'; meta='|META-INF/services/(javax\.measure\.spi\.ServiceProvider|org\.tinygears\.uom\.engine\.internal\.UnitCatalogs)?' ;;
+      uom-jsr) pkg='org/tinygears/uom/jsr'; meta='|META-INF/services/(javax\.measure\.spi\.ServiceProvider)?' ;;
       uom) pkg='org/tinygears/uom'; meta='' ;;
       *) pkg="org/tinygears/uom/${a#uom-}"; meta='' ;;
     esac
