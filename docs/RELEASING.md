@@ -71,7 +71,8 @@ Example for version `1.0.0`; the next development version is `1.0.1-SNAPSHOT`.
    ```
 
    Change the version of the dependency snippets in `README.md`, `docs/NATIVE.md` and `docs/JSR.md` by hand, and the
-   status lines: "Not released" at the end of the README status paragraph, "Not published yet; after
+   status lines: "in development, not released" in the README status, the `release-not yet` badge (replace it with
+   the Maven Central badge), "Not published yet; after
    `mvn -q -B install -DskipTests` in this repository" under its *Install*, and "not published yet" in
    `docs/NATIVE.md`. In `pom.xml`, set
    `project.build.outputTimestamp` to the release date (or the committer date of the previous

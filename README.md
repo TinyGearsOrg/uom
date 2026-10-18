@@ -1,10 +1,31 @@
-# uom
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/uom-logo-dark.svg">
+    <img src="docs/images/uom-logo-light.svg" alt="uom" width="350">
+  </picture>
+</p>
 
-A Java library for typed quantities and units of measurement: its own API, with units typed by its quantity types and typed
-products (`uom`), and a JSR-385 implementation (`javax.measure`, unit-api 2.2) on the same engine (`uom-jsr`). It is in
-development.
+<p align="center"><b>Typed quantities and units of measurement for Java</b><br>
+a native API with typed products and a JSR-385 implementation, on one exact engine</p>
 
-Status: milestone 6 done, then the native API (DESIGN DR-21). Both APIs have typed `double` and `BigDecimal` quantities for all 33 quantity types (with typed products in `uom`), eight catalogs with metric and binary prefixes, `quantity.toSystem(system)`, unit and quantity formats with locale-aware numbers, a decimal-preserving parse and a faithful form for offset units, Java serialization of units and quantities and user `.units` files loaded at run time; `uom-jsr` adds the JSR-385 service provider. The systems are `SI` (128 distinct units), `USCustomary` (35), `Imperial` (42), `CGS` (16), `ESU` (22), `EMU` (29), `Gaussian` (26, listed as 27 symbols in [docs/UNITS.md](docs/UNITS.md) because `Fr` and `statC` are the same unit) and `Information` (22: bit and byte with decimal and binary prefixes); `quantity.toSystem(system)` converts to the system's preferred unit for the quantity type. The JSR-385 TCK (`unit-tck` 2.2) passes: 113 of 113 tests; `mvn -q -B clean verify` runs 1344 tests (engine 70, uom 24, uom-jsr 886, codegen 188, tck 113, examples 63). Milestone 7 prepared the release (POM metadata, an inactive `release` profile, the public API pin, the generated unit table, the documentation set, `scripts/verify-release.sh` and a CI workflow on JDK 17, 21 and 25); nothing has been published. Not released.
+<p align="center">
+  <a href="https://github.com/TinyGearsOrg/uom/actions/workflows/ci.yml"><img src="https://github.com/TinyGearsOrg/uom/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue" alt="License: Apache-2.0"></a>
+  <img src="https://img.shields.io/badge/Java-17%2B-orange" alt="Java 17+">
+  <a href="docs/JSR.md"><img src="https://img.shields.io/badge/JSR--385-unit--api%202.2-blue" alt="JSR-385: unit-api 2.2"></a>
+  <a href="docs/JSR.md"><img src="https://img.shields.io/badge/TCK-113%2F113-brightgreen" alt="TCK: 113 of 113"></a>
+  <img src="https://img.shields.io/badge/release-not%20yet-lightgrey" alt="Release: not yet">
+</p>
+
+uom is a Java library for typed quantities and units of measurement with two APIs on one engine: `uom`, its own API,
+with units typed by its quantity types and typed products, and `uom-jsr`, a JSR-385 implementation (`javax.measure`,
+unit-api 2.2). Units convert exactly (rationals, powers of pi and roots); values are `double` or exact `BigDecimal`.
+
+**Status:** in development, not released. Both APIs have typed `double` and `BigDecimal` quantities for all 33 quantity
+types, eight catalogs (`SI`, `USCustomary`, `Imperial`, `CGS`, `ESU`, `EMU`, `Gaussian`, `Information`; listed in
+[docs/UNITS.md](docs/UNITS.md)), unit and quantity formats, user `.units` files and serialization. The JSR-385 TCK
+(`unit-tck` 2.2) passes 113 of 113 tests; `mvn -q -B clean verify` runs 1344 tests (engine 70, uom 24, uom-jsr 886,
+codegen 188, tck 113, examples 63), in CI on JDK 17, 21 and 25.
 
 ## Five minutes
 
