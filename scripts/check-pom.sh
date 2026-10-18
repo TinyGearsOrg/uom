@@ -200,7 +200,7 @@ expected = {
     'licenses/license/name': 'Apache License, Version 2.0',
     'licenses/license/url': 'https://www.apache.org/licenses/LICENSE-2.0.txt',
     'licenses/license/distribution': 'repo',
-    'developers/developer/id': 'tneidhart',
+    'developers/developer/id': 'netomi',
     'developers/developer/name': 'Thomas Neidhart',
     'developers/developer/email': 'thomas.neidhart@gmail.com',
     'scm/url': REPO,
