@@ -25,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Offset units (docs/OFFSET-UNITS.md): a RELATIVE quantity is a difference and takes no offset; ABSOLUTE operands
+ * Offset units (docs/NATIVE.md#offset-units): a RELATIVE quantity is a difference and takes no offset; ABSOLUTE operands
  * follow the literal rule of the Quantity Javadoc.
  */
 class RelativeScaleTest {

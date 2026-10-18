@@ -9,7 +9,7 @@
  */
 
 /**
- * The native API of uom (docs/NATIVE-API.md): {@link org.tinygears.uom.Quantity} and
+ * The native API of uom (docs/NATIVE.md): {@link org.tinygears.uom.Quantity} and
  * {@link org.tinygears.uom.Unit} typed with this library's quantity types, so a unit is a
  * {@code Unit<Length>} and the product of typed quantities is typed ({@code Length.divide(Time)} is a {@code Speed}).
  * The types are generated into {@code org.tinygears.uom.quantity}, the catalogs into

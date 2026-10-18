@@ -21,7 +21,7 @@ factories, so reading re-checks the invariants and a forged stream that violates
 after the catalogs are loaded (an atom of a user `.units` file that is not loaded), cannot be checked and reads as an
 unregistered atom. A quantity of `uom` reads back through the factory of its type; one of `uom-jsr` through the factory
 of this implementation's provider, else of the current `ServiceProvider`. Systems and formats are not serializable. The serialized form may change in any release
-before 1.0 (see [docs/API.md](docs/API.md)).
+before 1.0 (see [docs/DESIGN.md](docs/DESIGN.md), section 8).
 
 The checks run after the JDK has read the stream: the JDK allocates its arrays and strings, and resolves its classes,
 before any of our code runs. Never read a stream you do not trust without an `ObjectInputFilter` that limits the sizes

@@ -56,10 +56,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class DocsSnippetsTest {
     private static final List<Path> DOCS = List.of(
             Path.of("../README.md"),
+            Path.of("../docs/NATIVE.md"),
+            Path.of("../docs/JSR.md"),
             Path.of("../docs/CUSTOM-UNITS.md"),
-            Path.of("../docs/OFFSET-UNITS.md"),
-            Path.of("../docs/PROVIDERS.md"),
-            Path.of("../docs/INDRIYA.md"),
             Path.of("../SECURITY.md"));
     private static final String JAVA = "import java.io.*; import java.math.*; import java.nio.file.*;"
             + " import java.util.*;";

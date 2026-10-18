@@ -23,7 +23,7 @@ import org.tinygears.uom.jsr.quantity.Temperature;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** Units with an offset take part in products by their factor only (docs/OFFSET-UNITS.md). */
+/** Units with an offset take part in products by their factor only (docs/NATIVE.md#offset-units). */
 class OffsetUnitProductsTest {
     private static final UomUnitFormat FORMAT = UomUnitFormat.standard();
     private static final Unit<?> KELVIN_PER_METRE = SI.KELVIN.divide(SI.METRE);

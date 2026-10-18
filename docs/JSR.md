@@ -1,20 +1,121 @@
-# uom compared with Indriya
+# The JSR-385 implementation: `uom-jsr`
 
-Indriya is the reference implementation of JSR-385; this page concerns `uom-jsr`, the JSR-385 implementation of uom.
-Generic code that uses only the `javax.measure` API runs on both,
-but the two answer some questions differently. This page lists the differences found by running the same cases on uom
-and on Indriya 2.2.4 on one class path. Every example below runs in the build (`DocsSnippetsTest`, with Indriya as a
-test dependency) and prints both results, so the page breaks when either library changes.
+The artifact `uom-jsr` (JPMS module `org.tinygears.uom.jsr`) implements JSR-385 (`javax.measure`, unit-api 2.2; the TCK
+passes 113 of 113 tests) on the engine of uom, with the same catalogs, formats, arithmetic and results as the native API.
+It brings `uom`, `uom-engine` and `javax.measure:unit-api` 2.2, the only third-party runtime dependency.
 
-Most differences are deliberate and follow from the requirements of uom ([REQUIREMENTS.md](REQUIREMENTS.md): F5, F20,
-F21, F23).
-The ones marked **open** are not decided yet ([TODO.md](TODO.md), item 10); they may change before 1.0.
+```xml
+<dependency>
+  <groupId>org.tinygears</groupId>
+  <artifactId>uom-jsr</artifactId>
+  <version>0.1.0-SNAPSHOT</version>
+</dependency>
+```
 
-The examples use `ServiceProvider.of("TinyGears")` and `ServiceProvider.of("Default")` (Indriya's provider) where generic
-code is meant, and each library's own constants (`SI`, `Units`) otherwise. [PROVIDERS.md](PROVIDERS.md) explains how
-both providers live on one class path.
+On the module path: `requires org.tinygears.uom.jsr;` (it requires `org.tinygears.uom`, `org.tinygears.uom.engine` and
+`java.measure` transitively).
 
-## Units
+The rules of quantities and units are those of [NATIVE.md](NATIVE.md): decimals and precision, equality and
+equivalence, offset units and `Scale`, systems of units and formats. This page covers what differs: the class names,
+the JSR-385 typing, the service provider and the comparison with Indriya. [UNITS.md](UNITS.md) lists every unit.
+
+| Native (`uom`) | JSR-385 (`uom-jsr`) |
+|---|---|
+| `org.tinygears.uom.quantity.Length` | `org.tinygears.uom.jsr.quantity.Length` (extends `javax.measure.quantity.Length`) |
+| `Unit<Length>` | `UomUnit<javax.measure.quantity.Length>` (implements `javax.measure.Unit`) |
+| `Scale` | `javax.measure.Quantity.Scale` |
+| `UnitFormat`, `QuantityFormat` | `UomUnitFormat`, `UomQuantityFormat` (same texts) |
+| `SystemOfUnits.load` | `UomSystemOfUnits.load` |
+| `value()`, `unit()`, `scale()` | `getValue()`, `getUnit()`, `getScale()` |
+| typed products (`Length.divide(Time)` is a `Speed`) | untyped products, narrowed with `as(Speed.class)` |
+
+## Typed quantities and unit declarations
+
+The typed interfaces have the simple names of the standard ones (`org.tinygears.uom.jsr.quantity.Length` extends
+`javax.measure.quantity.Length`), so a file that imports ours cannot also import the standard type; and JSR-385's
+generics (`Unit<Q extends Quantity<Q>>`) keep our types out of unit types. Declare units as `Unit<?>` or with `var` (or
+name the standard type fully qualified), and quantities with our types:
+
+```java jsr
+var km = SI.KILOMETRE;                       // UomUnit<javax.measure.quantity.Length>
+Length run = Length.of(10, km);
+```
+
+Every quantity of `uom-jsr` is a `UomQuantity`: the JSR-385 `Quantity` with our typed interface as the return type
+of its operations, plus what the standard has no method for. Products, quotients and `UomQuantityFormat.parse` return a
+`UomQuantity`, so:
+
+- `as(Speed.class)` narrows to our typed interface, by dimension as `asType` does: `length.divide(time).as(Speed.class)`.
+  `asType` cannot take our interface (`Speed` is not a `Quantity<Speed>`), so it needs the standard class and a cast.
+- `isCloseTo(that, 1e-9)` (relative) and `isCloseTo(that, Length.of(1, SI.MILLIMETRE))` (absolute) compare within a
+  tolerance you choose. The standard `isEquivalentTo` is exact for decimal quantities and uses a fixed `1e-12` for
+  `double` quantities.
+- `toSystem(system)`, `toDouble()` and `toDecimal(mc)` convert to a system's preferred unit and between number types.
+
+```java jsr
+Angle degrees = Angle.of(BigDecimal.ONE, SI.RADIAN).to(SI.DEGREE);   // rounded to 34 digits
+System.out.println(degrees.isEquivalentTo(Angle.of(BigDecimal.ONE, SI.RADIAN))); // prints: false
+System.out.println(degrees.isCloseTo(Angle.of(BigDecimal.ONE, SI.RADIAN), 1e-30)); // prints: true
+```
+
+A quantity whose static type is the standard `Quantity<?>`, such as one from code written against JSR-385 only, is
+narrowed with `X.from`: `Speed.from(quantity)` narrows the same way, returns a quantity of this implementation as it is,
+and refuses one of another implementation with a `ClassCastException`. `asType` on units and quantities goes by
+dimension, as the JSR-385 Javadoc says: `Hz`, `Bq` and `1/s` are units of `Frequency` and of `Radioactivity`.
+
+## Converting to and from the native API
+
+The native and the JSR-385 quantities share their engine units, so `Jsr` converts between them without converting the
+value: `Jsr.toJsr(length)` (or `Jsr.toJsr(length, org.tinygears.uom.jsr.quantity.Length.class)`) and
+`Jsr.fromJsr(quantity, Length.class)` keep value, number type, context and scale.
+
+## The service provider
+
+uom registers one JSR-385 service provider, `UomServiceProvider`, with the name `TinyGears` and priority 100. Another
+implementation on the same class path or module path registers its own: Indriya 2.2 is named `Default` and has priority
+10. unit-api picks the **current** provider, the one with the highest priority unless the program sets one with
+`ServiceProvider.setCurrent`. Generic JSR-385 code that calls `ServiceProvider.current()` gets the factories, formats and
+systems of units of that provider.
+
+With uom and Indriya both present, uom is current because its priority is higher. To use Indriya for generic code, set it:
+`ServiceProvider.setCurrent(ServiceProvider.of("Default"))`. Providers are found by name, `TinyGears` or `Default`; a
+provider without a name is found only by the value of its `toString()`.
+
+```java jsr
+import javax.measure.spi.ServiceProvider;
+System.out.println(ServiceProvider.of("TinyGears").getPriority()); // prints: 100
+System.out.println(ServiceProvider.current());                     // prints: TinyGears
+```
+
+uom does not depend on which provider is current. Narrowing a quantity or a unit with `asType`, reading a serialized
+quantity, printing an unnamed unit and the system unit of a named unit need uom's own factories and formats, and they
+find them themselves: the current provider if it is uom's, otherwise uom's provider among
+`ServiceProvider.available()`, which is kept after the first lookup. The provider is part of `uom-jsr`, so it is always
+there. The lookup uses the class loader of the first caller; in an application server with one copy of uom per
+application this is the application's.
+
+```java jsr
+Quantity<?> speed = Length.of(6, SI.METRE).divide(Time.of(2, SI.SECOND)).asType(javax.measure.quantity.Speed.class);
+System.out.println(speed);                                     // prints: 3.0 m/s
+```
+
+An unnamed unit, such as `SI.HERTZ.prefix(MetricPrefix.MILLI)` or `SI.METRE.multiply(1000)`, prints as the standard
+format of uom writes it: `mHz`, `km`; if the format has no text for the unit (a negative factor, say), it prints the
+definition: `-2·m`.
+
+Quantities and units of two implementations are not interchangeable. A uom quantity rejects a unit or quantity of
+another implementation with `UnconvertibleException` (`add`, `to`, `isEquivalentTo` and the others), so convert by value
+and unit explicitly. A quantity written by one implementation is not read by the other. `ProviderCoexistenceTest` runs
+uom and Indriya together in both directions.
+
+## Compared with Indriya
+
+Indriya is the reference implementation of JSR-385. Generic code that uses only the `javax.measure` API runs on both,
+but the two answer some questions differently. The examples below run uom and Indriya 2.2.4 on one class path (in
+`DocsSnippetsTest`, with Indriya as a test dependency) and print both results, so this section breaks when either
+library changes. Most differences are deliberate (DESIGN, section 1: F5, F20, F21, F23). The examples use
+`ServiceProvider.of("TinyGears")` and `ServiceProvider.of("Default")` (Indriya's provider) where generic code is meant,
+and each library's own constants (`SI`, `Units`) otherwise.
 
 ### Equality is structural in uom
 
@@ -54,9 +155,9 @@ System.out.println(Units.METRE.multiply(1000) + " " + Units.METRE.multiply(0.304
 
 ### Exponents and special characters
 
-The uom format writes ASCII exponents by default (`m/s^2`); `UomUnitFormat.withSuperscripts(true)` writes `m/s²`. Indriya
-writes superscripts, and degree Celsius as the compatibility character `℃` (U+2103). Indriya writes the micro prefix as the Greek letter mu `μ` (U+03BC); uom uses the micro sign
-`µ` (U+00B5) that `MetricPrefix.MICRO` defines.
+The uom format writes ASCII exponents by default (`m/s^2`); `UomUnitFormat.withSuperscripts(true)` writes `m/s²`.
+Indriya writes superscripts, and degree Celsius as the compatibility character `℃` (U+2103). Indriya writes the micro
+prefix as the Greek letter mu `μ` (U+03BC); uom uses the micro sign `µ` (U+00B5) that `MetricPrefix.MICRO` defines.
 
 ```java jsr
 import tech.units.indriya.unit.Units;
@@ -68,7 +169,7 @@ System.out.println(SI.METRE.prefix(MetricPrefix.MICRO) + " " + MetricPrefix.MICR
 ```
 
 uom reads the Greek mu as the micro prefix, so `μm` that Indriya wrote parses back (and prints as `µm`); `℃` and `㎥`
-do not parse (DESIGN DR-26; see Parsing).
+do not parse (DESIGN DR-26; see "Parsing units").
 
 ### System units of prefixed derived units
 
@@ -82,8 +183,6 @@ System.out.println(SI.KILOPASCAL.getSystemUnit());                              
 System.out.println(MetricPrefix.KILO(Units.PASCAL).getSystemUnit());                  // prints: Pa
 System.out.println(SI.NEWTON.multiply(SI.METRE).getSystemUnit());                     // prints: kg·m^2/s^2
 ```
-
-## Quantities
 
 ### Values are double or BigDecimal in uom
 
@@ -123,7 +222,8 @@ System.out.println(Quantities.getQuantity(1, Units.METRE).equals(indriyaGeneric.
 
 uom treats two `double` quantities as equivalent when their values in the same unit agree within the relative
 tolerance `1e-12` (`AbstractDoubleQuantity.EQUIVALENCE_TOLERANCE`, F20), so rounding noise from a conversion does not
-matter; two `BigDecimal` quantities are compared exactly, as Indriya compares every pair (DR-18). Quantities of different dimensions are not equivalent in uom; Indriya throws.
+matter; two `BigDecimal` quantities are compared exactly, as Indriya compares every pair (DR-18). Quantities of
+different dimensions are not equivalent in uom; Indriya throws.
 
 ```java jsr
 import tech.units.indriya.quantity.Quantities;
@@ -138,8 +238,6 @@ try {
     System.out.println("Indriya throws");                                              // prints: Indriya throws
 }
 ```
-
-## Formats
 
 ### Parsing quantities
 
@@ -241,10 +339,18 @@ Indriya offers several named formats (`SIMPLE_ASCII`, `EBNF`, `LOCAL`, `SIMPLE_D
 `SIMPLE`, `NUMBERDELIMITER` for quantities); uom has one, `default`, for each, configured through `UomUnitFormat` and
 `UomQuantityFormat` (`withSuperscripts`, `withLocale`, `withDecimals`).
 
-## Only in Indriya
+### Offset arithmetic
 
-Indriya 2.2.4 goes beyond JSR-385 in several places that uom does not cover, by decision for 1.0
-([REQUIREMENTS.md](REQUIREMENTS.md), section 2):
+uom and Indriya 2.2 agree on two `ABSOLUTE` operands (`2 °C + 1 °C` is `276.15 °C`), on a point plus or minus a
+difference, a difference plus a difference, a difference times a number, and the conversion of a difference. They
+differ on a difference minus a point: Indriya 2.2 returned `-545.30 °C` for `2 °C` (relative) minus `1 °C` (absolute);
+uom returns the delta `1 °C`. Indriya creates products of offset units (`℃/m`) but cannot convert them
+(`UnsupportedOperationException: ℃ is non-linear, cannot convert`); uom converts them by their factor
+([NATIVE.md](NATIVE.md), "Offset units").
+
+### Only in Indriya
+
+Indriya 2.2.4 goes beyond JSR-385 in several places that uom does not cover, by decision for 1.0 (DESIGN, section 1):
 
 | Indriya | uom |
 |---|---|

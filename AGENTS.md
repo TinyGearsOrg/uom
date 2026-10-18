@@ -31,7 +31,7 @@ conflicts with an explicit request from the user, ask before overriding it.
 ## Pinned outputs to keep in step
 
 - The public API is pinned by `ApiSurfaceTest`. A deliberate API change rewrites `docs/api/public-api.txt` with
-  `mvn -B verify -Duom.writeApi`; review the diff, it is part of the change ([docs/API.md](docs/API.md)).
+  `mvn -B verify -Duom.writeApi`; review the diff, it is part of the change ([docs/DESIGN.md](docs/DESIGN.md), section 8).
 - The `java`, `units` and `units-error` blocks of the user documents run in `DocsSnippetsTest` (the list is in that
   test); a `// prints:` comment is the expected output. A `java` block uses `uom`, a `java jsr` block `uom-jsr`; a
   `units` block loads with both. Keep them true when behaviour changes.
@@ -51,8 +51,8 @@ conflicts with an explicit request from the user, ask before overriding it.
   code does. Do not recount what a line used to do; the history belongs in the commit message.
 - Ask before removing functionality or code that appears intentional. Nothing is released yet, so backward
   compatibility is not required unless the user asks for it; from 1.0, semantic versioning applies
-  ([docs/API.md](docs/API.md)).
-- A design decision gets a decision record in [docs/DESIGN.md](docs/DESIGN.md) section 1 (`DR-nn`: decision, why,
+  ([docs/DESIGN.md](docs/DESIGN.md), section 8).
+- A design decision gets a decision record in [docs/DESIGN.md](docs/DESIGN.md) section 9 (`DR-nn`: decision, why,
   rejected, revisit if). [docs/TODO.md](docs/TODO.md) lists open work only: remove an item when it is done.
 - Run the hooks of `.pre-commit-config.yaml` before you finish: `prek run --all-files` (or `pre-commit run
   --all-files`); they fix whitespace, format, regenerate and check the scripts, POMs and workflows

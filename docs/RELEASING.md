@@ -56,7 +56,7 @@ bundle, `skipPublishing` set literally in their POMs).
 - [ ] The CI workflow is green on `main` for the commit to release.
 - [ ] `CHANGELOG.md`: the `Unreleased` section is complete; rename it to the version and date.
 - [ ] `docs/api/public-api.txt`: the diff since the last release matches the version step (a removed or changed line
-      needs a major version after 1.0, see [API.md](API.md)).
+      needs a major version after 1.0, see [DESIGN.md](DESIGN.md), section 8).
 - [ ] The scm, url and issue URLs in `pom.xml` point to the current repository name.
 - [ ] `docs/TODO.md` has no open item that blocks this release.
 
@@ -70,9 +70,10 @@ Example for version `1.0.0`; the next development version is `1.0.1-SNAPSHOT`.
    mvn -B org.codehaus.mojo:versions-maven-plugin:2.23.0:set -DnewVersion=1.0.0 -DgenerateBackupPoms=false
    ```
 
-   Change the version of the dependency snippet in `README.md` by hand, and its status lines: "Not released" at the
-   end of the status paragraph and "Not published yet; after `mvn -q -B install -DskipTests` in this repository" under
-   *Install*. In `pom.xml`, set
+   Change the version of the dependency snippets in `README.md`, `docs/NATIVE.md` and `docs/JSR.md` by hand, and the
+   status lines: "Not released" at the end of the README status paragraph, "Not published yet; after
+   `mvn -q -B install -DskipTests` in this repository" under its *Install*, and "not published yet" in
+   `docs/NATIVE.md`. In `pom.xml`, set
    `project.build.outputTimestamp` to the release date (or the committer date of the previous
    commit, `git log -1 --format=%cI`), as its comment says.
 2. **Verify**, with JDK 21:

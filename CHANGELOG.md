@@ -1,7 +1,7 @@
 # Changelog
 
 All notable changes are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
-the project follows [semantic versioning](https://semver.org/) from 1.0.0 (see [docs/API.md](docs/API.md)).
+the project follows [semantic versioning](https://semver.org/) from 1.0.0 (see [docs/DESIGN.md](docs/DESIGN.md), section 8).
 
 ## [Unreleased]
 
@@ -14,7 +14,7 @@ Nothing is released yet; the development version is `0.1.0-SNAPSHOT`.
   library's types, typed products, formats, systems) and `uom-jsr` (the JSR-385 implementation, module
   `org.tinygears.uom.jsr`, packages `org.tinygears.uom.jsr.*`, with `Jsr`, the conversion to and from `uom`). The
   former `uom-core` and the JSR-385 `uom` are merged into `uom-jsr`; the entries below name the modules of their time
-  (DESIGN DR-21, docs/NATIVE-API.md).
+  (DESIGN DR-21).
 - Decimal values and context precisions are bounded to 50000 digits (`MAX_PRECISION`, before 100000 and for the
   context only): creation, arithmetic (exact `UNLIMITED` results included) and the serial form throw beyond it, and
   the quantity format refuses a longer number before parsing it. At precision 50000 a result below 1 no longer
@@ -44,7 +44,7 @@ Nothing is released yet; the development version is `0.1.0-SNAPSHOT`.
 - Java serialization of units and quantities through serialization proxies that re-check every invariant.
 - `Quantity.Scale.RELATIVE` quantities are differences: they convert, add, scale and compare without the offset of
   units such as °C, and a sum or difference is `RELATIVE` only if both operands are
-  ([docs/OFFSET-UNITS.md](docs/OFFSET-UNITS.md)). `ABSOLUTE` quantities keep the literal `Quantity` Javadoc rule.
+  ([docs/NATIVE.md](docs/NATIVE.md), "Offset units"). `ABSOLUTE` quantities keep the literal `Quantity` Javadoc rule.
 - `Unit.prefix` no longer invents a symbol (`km²`, `kmin`, `mkg`, `mmm` and collisions such as `cd` are gone): systems
   and formats name prefixed units. `UomUnitFormat` writes a metric prefix on a prefixable unit (`mHz`, `pW`) or a power of ten
   times a unit (`1000·min`), and an unnamed unit prints as the format writes it (`mHz`, `km`), else as its definition (`1000·m`) instead of its system
@@ -66,7 +66,7 @@ Nothing is released yet; the development version is `0.1.0-SNAPSHOT`.
 - `asType` (unit and quantity) goes by dimension, as the `Unit` and `Quantity` Javadoc say, so `1/s` narrows to
   `Frequency`, `Hz·s` to `Dimensionless` and `rad·m` to `Length`; `Unit.equals` stays structural.
 - `UomServiceProvider` is named `TinyGears` (`ServiceProvider.of("TinyGears")`), and `asType` and deserialization find the quantity
-  factories of uom whichever provider is current ([docs/PROVIDERS.md](docs/PROVIDERS.md)).
+  factories of uom whichever provider is current ([docs/JSR.md](docs/JSR.md), "The service provider").
 - Offset units take part in unit products, powers, roots and formulas by their factor only, so `°C/m` and
   `J/(kg·°C)` parse and `°C/m` equals `K/m`; a `RELATIVE` operand of a quantity product counts by its factor only.
 - Locale-aware quantity formats (`withLocale`, `withGrouping`), a decimal-preserving parse (`withDecimals`), the
@@ -74,7 +74,7 @@ Nothing is released yet; the development version is `0.1.0-SNAPSHOT`.
 - User `.units` files loaded at run time (`UomSystemOfUnits.load`) and added to a format with `UomUnitFormat.with`
   ([docs/CUSTOM-UNITS.md](docs/CUSTOM-UNITS.md)).
 - Release preparation: POM metadata, an inactive `release` profile (sources, javadoc, signing, Central upload),
-  reproducible jars, the public API definition and its pin ([docs/API.md](docs/API.md)), the generated unit table
+  reproducible jars, the public API definition and its pin ([docs/DESIGN.md](docs/DESIGN.md), section 8), the generated unit table
   ([docs/UNITS.md](docs/UNITS.md)), the user documentation, the release verification script and a CI workflow
   (JDK 17, 21 and 25).
 - Pre-commit hooks (`.pre-commit-config.yaml`, for prek or pre-commit): end of file, line endings, trailing

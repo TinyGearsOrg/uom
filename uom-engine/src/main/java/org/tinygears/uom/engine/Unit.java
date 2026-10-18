@@ -341,7 +341,7 @@ public final class Unit implements Serializable {
 
     /**
      * The product with {@code multiplier}. A unit with an offset takes part by its factor only, so {@code °C·m}
-     * is {@code K·m}: the offset belongs to points, and a product unit measures differences (docs/OFFSET-UNITS.md).
+     * is {@code K·m}: the offset belongs to points, and a product unit measures differences (docs/NATIVE.md#offset-units).
      *
      * @param multiplier the other unit
      * @return the product

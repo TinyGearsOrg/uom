@@ -256,7 +256,7 @@ class UnitContractTest {
 
     @Test
     void offsetUnitProductDropsTheOffset() {
-        // The class Javadoc allows products of offset units; the product measures differences (docs/OFFSET-UNITS.md).
+        // The class Javadoc allows products of offset units; the product measures differences (docs/NATIVE.md#offset-units).
         assertEquals(KELVIN.divide(METRE), CELSIUS.divide(METRE));
         assertEquals(KELVIN.divide(METRE).getSystemUnit(), CELSIUS.divide(METRE).getSystemUnit());
         assertTrue(CELSIUS.divide(METRE).toSystemConverter().isLinear());

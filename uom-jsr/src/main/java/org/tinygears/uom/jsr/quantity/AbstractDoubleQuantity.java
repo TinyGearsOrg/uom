@@ -122,7 +122,7 @@ public abstract class AbstractDoubleQuantity<Q extends Quantity<Q>, R extends Uo
 
     /**
      * Converts to {@code unit}; an {@code ABSOLUTE} quantity converts through the offsets, a {@code RELATIVE} one (a
-     * difference) by the factor only, and the scale is kept (docs/OFFSET-UNITS.md).
+     * difference) by the factor only, and the scale is kept (docs/NATIVE.md#offset-units).
      */
     @Override
     public R to(Unit<Q> unit) {
@@ -290,7 +290,7 @@ public abstract class AbstractDoubleQuantity<Q extends Quantity<Q>, R extends Uo
      * Adds as if both operands were in the system unit, with the result back in this unit; linear units skip the
      * system round trip. If either operand is {@code RELATIVE}, {@code addend} is a difference: it is converted by
      * the factor only and added to this value in this unit. The result is {@code RELATIVE} only if both operands
-     * are, otherwise {@code ABSOLUTE} (docs/OFFSET-UNITS.md). A decimal {@code addend} gives a decimal result (see
+     * are, otherwise {@code ABSOLUTE} (docs/NATIVE.md#offset-units). A decimal {@code addend} gives a decimal result (see
      * the class comment). Throws {@link UnconvertibleException} for a foreign unit or incompatible dimensions.
      *
      * @throws NullPointerException if {@code addend} is null

@@ -35,7 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
- * uom next to Indriya on one class path (docs/PROVIDERS.md): the priority decides which provider is current, and
+ * uom next to Indriya on one class path (docs/JSR.md#the-service-provider): the priority decides which provider is current, and
  * neither implementation depends on that choice.
  */
 class ProviderCoexistenceTest {

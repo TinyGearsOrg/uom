@@ -151,7 +151,7 @@ public abstract class AbstractDecimalQuantity<Q extends Quantity<Q>, R extends U
      * Converts and rounds the result to {@link #mathContext()}, even for the identity conversion
      * ({@code 1.23456789 m} with {@code DECIMAL32} to metres gives {@code 1.234568 m}). An {@code ABSOLUTE} quantity
      * converts through the offsets, a {@code RELATIVE} one (a difference) by the factor only, and the scale is kept
-     * (docs/OFFSET-UNITS.md). Throws
+     * (docs/NATIVE.md#offset-units). Throws
      * {@link ArithmeticException} if the result's scale exceeds the bound of ±100000 (conversion or rounding can
      * push a value past it).
      */
@@ -228,7 +228,7 @@ public abstract class AbstractDecimalQuantity<Q extends Quantity<Q>, R extends U
      * Adds as if both operands were in the system unit, with the result back in this unit; linear units skip the
      * system round trip. If either operand is {@code RELATIVE}, {@code addend} is a difference: it is converted by
      * the factor only and added to this value in this unit. The result is {@code RELATIVE} only if both operands
-     * are, otherwise {@code ABSOLUTE} (docs/OFFSET-UNITS.md). Evaluated exactly and rounded once to the lower
+     * are, otherwise {@code ABSOLUTE} (docs/NATIVE.md#offset-units). Evaluated exactly and rounded once to the lower
      * context of the two (irrational unit factors through enclosures that narrow until the rounding is decided); a
      * {@code double} operand is read
      * as its shortest decimal and adopts this context. Throws {@link UnconvertibleException} for a foreign unit or incompatible dimensions.

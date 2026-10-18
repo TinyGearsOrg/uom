@@ -1,470 +1,115 @@
 # uom: Design
 
-Status: implemented, nothing published yet; the decisions taken are recorded in section 1. Companion to `REQUIREMENTS.md` (requirement IDs F1 to F24 and
-N1 to N8 refer to it). Target API: `javax.measure:unit-api` 2.2. Java 17 (DR-11). Maven, multi-module.
+Status: implemented and prepared for release (POM metadata, release profile, API pin, documentation, release
+verification, CI); nothing is published. This document holds the requirements (section 1), the architecture and its
+rules (sections 2 to 7), the public API and versioning (section 8) and the decision records (section 9). The user
+documentation is [NATIVE.md](NATIVE.md), [JSR.md](JSR.md) and [CUSTOM-UNITS.md](CUSTOM-UNITS.md); open work is in
+[TODO.md](TODO.md).
 
-## 1. Decisions
+## 1. Purpose and requirements
 
-| Topic | Decision |
-|-------|----------|
-| API | Implement JSR-385 (unit-api 2.2) ourselves; no Indriya dependency (F1, F2). |
-| Typed quantities | Own typed interfaces extending the standard ones, plus generated `double` and `BigDecimal` implementations (F3 to F5). |
-| Code generation | An internal generator reads data files and writes plain Java sources, which are committed. CI fails if regenerating produces a diff. No annotation processor, no proxies. |
-| Catalogs | Text data files are the single source of truth (F15). They generate typed catalogs; the same parser loads user files at run time (F17, section 5). |
-| User extension | Users load their own `.units` files at run time (`UomSystemOfUnits.load`) and get `Unit<?>` back (F18); a file sees only what it includes (DR-16). User-defined quantity types are out of scope. |
-| Precision | Mixing `double` and `BigDecimal` gives `BigDecimal`, the `double` read as its shortest decimal; symmetric (F23, DR-14). |
-| Irrational factors | Pi and roots are enclosed by directed rounding; decimal results are rounded correctly (DR-15). |
-| Equality | Strict `equals` and `hashCode`; standard `isEquivalentTo` (exact for decimals, `1e-12` relative with a `double`, DR-18); `Comparable` by system-unit value, not consistent with `equals` (F20 to F22). |
-| Java baseline | Java 17; releases built with JDK 21 (DR-11). |
-| Information units | An `Information` catalog with bit and byte as untyped alternate atoms, metric and binary prefixes (DR-12). |
-| Systems of units | Catalogs and preferred units over the SI dimensions; own base units and dimension models belong in a separate library (DR-13). |
+### 1.1 Purpose
 
-### Decision records
+A general-purpose, published open-source Java library for quantities and units of measurement, restarted from the
+unfinished `netomi/uom`, with two APIs on one engine:
 
-Each record gives the decision, why, what was rejected and when to revisit it, with the code and documents involved. The
-behaviour for users is in the linked documents. The full discussion and probe results behind these records are in the last
-`docs/TODO.md` that still held them: `git show 5d734d3:docs/TODO.md` (its items 1 to 5, 12, 19 and 20).
+1. **`uom`, the native API.** Quantities and units typed with this library's 33 quantity types (`Unit<Length>`), with
+   typed products (`Length / Time` is a `Speed`), which JSR-385's generics rule out (section 2).
+2. **`uom-jsr`, a JSR-385 implementation** (`javax.measure`, unit-api 2.2) with typed quantity classes that implement
+   the standard interfaces, usable wherever JSR-385 code is expected.
 
-**DR-01 Offset arithmetic and `Scale` (F24).**
-- *Decision.* `ABSOLUTE` operands follow the literal `Quantity` Javadoc rule: operands to the system unit, combine, back to
-  the left unit (`2 °C + 1 °C` is 276.15 °C). A `RELATIVE` quantity is a difference and takes no offset: `to` and `toSystem`
-  convert it by the factor, `multiply(Number)` and `divide(Number)` scale it, `add` and `subtract` take the right operand as
-  a delta if either operand is `RELATIVE` (result `RELATIVE` only if both are), `compareTo` and `isEquivalentTo` between two
-  `RELATIVE` quantities compare differences.
-- *Why.* The Javadoc rule is the only specification for points (its own example, 274.15, contradicts it). The TCK tests
-  neither `Scale` nor offsets. Indriya 2.2 agrees for `ABSOLUTE` and for the sane `RELATIVE` cases (probed); applying an
-  offset to a difference is plainly wrong (a 5 K rise was -268.15 °C).
-- *Rejected.* Literal rule everywhere (differences get offsets). Strict model, where a point minus a point is `RELATIVE` and
-  a sum of points is refused, and the hybrid: both differ from the Javadoc and from Indriya.
-- *Revisit if.* Users expect point minus point to be a difference (add a helper, or adopt the hybrid); Indriya or the standard
-  changes; `double` rounding through the offset matters (`20 °C - 0 °C` is -253.14999999999998; `BigDecimal` is exact).
-  Code: `AbstractDoubleQuantity` and `AbstractDecimalQuantity` (`to`, `combine`, `scalar`, products) over the engine's
-  `DoubleArithmetic`, `DecimalArithmetic` and `Deltas`.
-- *See.* [OFFSET-UNITS.md](OFFSET-UNITS.md); `RelativeScaleTest`, `QuantityContractTest`.
+Both have `double` and exact `BigDecimal` values, multiple unit systems with conversion between them (SI, US
+customary, Imperial, CGS with its electromagnetic variants, information units), user unit files loaded at run time,
+and no runtime reflection or dynamic proxies.
 
-**DR-02 `asType` goes by dimension (F21).**
-- *Decision.* `Unit.asType` and `Quantity.asType` throw only if the dimension differs. Alternate units count by dimension:
-  `1/s`, `Hz` and `Bq` are units of `Frequency` and of `Radioactivity`, `rad·m` of `Length`, `Hz·s` of `Dimensionless`.
-  `Unit.equals` stays structural, so `Hz`, `Bq` and `1/s` are three units, equivalent to one another.
-- *Why.* Both Javadocs say `ClassCastException` only for a different dimension, and the `Unit` Javadoc's example is
-  `ONE.alternate("rad").asType(Angle.class)`. Indriya 2.2 accepts every such case, and the typed factories already accepted
-  `Bq` as a `Frequency` unit. The old structural rule refused arc length (an angle times a radius).
-- *Rejected.* The structural rule (stricter than the standard); "accept if either side has no alternate atom" (an invented
-  rule that still refuses `rad·m`).
-- *Revisit if.* Type safety between `Hz` and `Bq` is wanted: restrict `asType` for alternate atoms, at the price of
-  deviating from the Javadoc and Indriya. The explicit assignments (`@preferred Type unit`, `[Type]`) stay structural
-  (DR-20). Code: `UomUnit.asType`.
-- *See.* `AsTypeDimensionTest`, `UomUnitAsTypeTest`.
+### 1.2 Requirements
 
-**DR-03 Offset units in products take part by their factor.**
-- *Decision.* An offset unit takes part in `multiply(Unit)`, `divide(Unit)`, `pow`, `root`, `inverse` and in formulas by its
-  factor only: `°C/m` is `K/m`, `J/(kg·°C)` parses. In a quantity product a `RELATIVE` operand counts by its factor, an
-  `ABSOLUTE` one is a point and goes through the offset (20 °C over 2 m is 146.575 K/m, a 20 °C rise over 2 m is 10 K/m).
-- *Why.* The `Unit` Javadoc says the interface supports products of offset units (°C per metre is its example). Such units
-  measure differences. Indriya 2.2 creates them but cannot convert them.
-- *Rejected.* Refusing them (the old behaviour; `°C/m` was unusable). An Indriya-style non-convertible unit (needs a new
-  unit concept, little value).
-- *Revisit if.* The silent drop of the offset causes bugs, for instance a `°C/m` unit used for a point-valued product: throw
-  or warn instead. Code: `UomUnit.combine`, `pow`, `root`.
-- *See.* [OFFSET-UNITS.md](OFFSET-UNITS.md); `OffsetUnitProductsTest`.
+The IDs are cited by the decision records and the code. Unless a requirement names one API, it holds for both.
 
-**DR-04 `toSystem(SystemOfUnits)`.**
-- *Decision.* The typed interfaces have `to(Unit)` and `toSystem(SystemOfUnits)`.
-- *Why.* One name for both made a bare `to(null)` ambiguous and could clash with a later `to(...)` of unit-api.
-- *Rejected.* Keeping the overload.
-- *Revisit if.* unit-api adds a method named `toSystem`. Code: the generated typed interfaces and the base classes.
+| ID | Requirement |
+|----|-------------|
+| F1 | Implement the JSR-385 API, unit-api 2.2 (`Quantity`, `Unit`, `UnitConverter`, `Dimension`, `SystemOfUnits`, the service provider) in `uom-jsr`. Older versions are not supported. |
+| F2 | Own implementation: no dependency on Indriya or another JSR-385 implementation at run time. |
+| F3 | Typed quantity classes are generated by an internal generator from data files, and the sources are committed. No proxies, no reflection for quantity creation, no annotation processing for consumers. |
+| F4 | `uom-jsr`'s typed quantities implement the standard interfaces (`javax.measure.quantity.Length`, ...) and are accepted anywhere `Quantity<Q>` is. |
+| F5 | Two precisions, `double` and `BigDecimal`, for every quantity type, with one documented rule for mixing them (F23). Any other `Number` value becomes a `double`. |
+| F6 | Catalogs: `SI` (128 distinct units, all prefixes, the non-SI units accepted for use with the SI), `USCustomary` (35), `Imperial` (42), `CGS` (16), `ESU` (22), `EMU` (29), `Gaussian` (26), `Information` (22: bit and byte with decimal and binary prefixes, IEC 80000-13, DR-12). US and imperial gallons and the international and survey foot are distinct. Poise, stokes, oersted, bit and byte are untyped. |
+| F7 | CGS electromagnetic units are conversion conventions over the SI dimensions (a statcoulomb is an `ElectricCharge` with a factor to the coulomb), not separate dimension sets (DR-13). |
+| F8 | `quantity.toSystem(system)` converts to the system's preferred unit for the quantity type; every system has one for all 33 types (DR-24). |
+| F9 | Unit parsing and formatting (symbols, prefixes, formulas such as `kg·m/s^2`, a faithful text for offset units such as `K + 5`) and quantity formatting and parsing with locale-aware numbers and a decimal-preserving parse. |
+| F10 | Unit algebra: multiply, divide, pow, root, prefixes, shift (offset units), transform, alternate units, base-unit decomposition. An offset unit takes part in products by its factor only (DR-03). |
+| F11 | Combining incompatible units fails with an unchecked exception naming both units. |
+| F12 | Quantities and units are immutable, thread-safe and `Serializable` through proxies that re-check every invariant (section 6). |
+| F13 | A `module-info.java` for every published module (`org.tinygears.uom.engine`, `org.tinygears.uom`, `org.tinygears.uom.jsr`); serialization works on the module path without `opens`. |
+| F14 | Moved out of scope (user-defined quantity types, section 1.3). |
+| F15 | Unit definitions live in `.units` text files, the single source of the catalogs: symbol and name, formulas, exact rational and decimal factors, offsets and affine functions, base and alternate units, includes, comments and an optional explicit quantity type (section 5). |
+| F16 | Typed catalog constants are generated from the data files; a unit's type is inferred from its system unit, or stated where it is ambiguous (energy and torque, hertz and becquerel, gray and sievert). An ambiguous definition without a type is a build error. |
+| F17 | One parser serves the generator, the unit format and run-time loading, so a symbol such as `ft` means the same unit in code and in text. |
+| F18 | Users load their own `.units` files at run time (`SystemOfUnits.load`, `UomSystemOfUnits.load`); they use and cannot redefine the built-in symbols, and their units are typed by their system unit, else untyped. |
+| F19 | Definition errors carry file and line, in the generator and at run time (`DefinitionException`). |
+| F20 | **Quantity equality.** `equals` and `hashCode` are strict and consistent: same class, unit, scale and value (`Double.compare` for `double`, `compareTo == 0` for `BigDecimal`; the `MathContext` is not part of equality). `isEquivalentTo` compares amounts: exactly for two decimals (DR-18), within a relative `1e-12` when a `double` is involved. |
+| F21 | **Unit equality** is structural over the atoms and the converter, not the labels: `km` equals `m·1000`, `RADIAN` does not equal `ONE`. `isEquivalentTo` on units means an identity converter. JSR-385 `asType` goes by dimension (DR-02). |
+| F22 | Quantities are `Comparable`, by system-unit value, not consistent with `equals`. |
+| F23 | **Precision rule: the decimal wins** (DR-14). A `double` and a `BigDecimal` quantity combine in decimal, the `double` read as its shortest decimal; two decimals give the smaller context (0, unlimited, is highest); every computed decimal result is rounded once to its context; `UNLIMITED` keeps results exact where they terminate, else `DECIMAL128`; scalar arguments adopt the receiver's precision; NaN and infinity throw against a decimal; `toDouble()` and `toDecimal(mc)` convert explicitly. Values and contexts have at most 50000 digits (DR-22). |
+| F24 | **Offsets.** `ABSOLUTE` quantities follow the literal `Quantity` Javadoc rule (`2 °C + 1 °C` is `276.15 °C`); `RELATIVE` quantities are differences and take no offset (DR-01; [NATIVE.md](NATIVE.md), "Offset units"). |
 
-**DR-05 The provider lookup does not depend on the current provider.**
-- *Decision.* `asType`, unit `asType` and deserialization take the quantity factories from the current provider if it is ours,
-  else from ours among `ServiceProvider.available()` (found once and kept), else from the current provider. The provider is
-  named `TinyGears`, keeps priority 100 (Indriya 2.2 has 10) and implements the hook `spi.QuantityFactories`.
-- *Why.* They used `ServiceProvider.current()`, so any other current provider (`setCurrent`, a higher priority) broke them
-  with `ClassCastException` and `InvalidObjectException` (probed with Indriya).
-- *Rejected.* A `ServiceLoader` SPI of the core (more wiring, same result); documentation only; a higher priority (hijacks
-  `current()` from users who chose Indriya).
-- *Revisit if.* The core should not use the JSR-385 provider machinery at all (own SPI); the priority policy changes; the
-  kept result (also "none found" for printing) is too sticky across class loaders. Quantities of two implementations do
-  not mix, by design (D8). Code: `spi.Providers`, `UomServiceProvider`.
-- *See.* [PROVIDERS.md](PROVIDERS.md); `ProvidersTest`, `ProviderCoexistenceTest`.
+| ID | Non-functional requirement |
+|----|-------------|
+| N1 | **Conformance:** the JSR-385 TCK (`unit-tck` 2.2) passes against `uom-jsr` (113 of 113). |
+| N2 | **Correctness:** conversions use exact definitions (inch = 0.0254 m); factors are exact rationals, powers of pi and roots, rounded once for `double` and correctly for decimals (DR-15). |
+| N3 | **Performance:** a `double` operation allocates at most the result; no reflection, boxing or map lookups on the hot path; converters and product units are cached. |
+| N4 | **Compile-time safety:** adding quantities of different types, or passing a unit of the wrong type to a typed factory, is a compile error where the API allows it. |
+| N5 | **Diagnostics:** data-file errors report file and line (F19). |
+| N6 | **Testing:** unit tests per module, golden tests for the generator, and a round trip over every catalog unit. |
+| N7 | **Documentation:** README with a quick start, a page per API, a guide to custom units and the generated table of catalog units ([UNITS.md](UNITS.md)), with their examples run in the build (`DocsSnippetsTest`). |
+| N8 | **Release:** Maven Central as `org.tinygears:uom-*`, semantic versioning and a defined public API (section 8). Prepared, not executed ([RELEASING.md](RELEASING.md)). |
 
-**DR-06 Prefixes are applied and named by systems, not by units.**
-- *Decision.* `Unit.prefix` only scales and returns an unnamed unit. The parser (`@prefixed`), the generated catalogs and
-  `UomUnitFormat.resolve` name prefixed units. `UomUnitFormat.format` writes a metric prefix on a prefixable unit (`mHz`,
-  `pW`) and a power of ten from 10 up times a unit (`1000·min`); other factors stay in system units (`864·s`). The parser
-  rejects `@prefixed` on a prefixed unit; `label` rejects a label that reads as another unit, also as a prefixed form.
-- *Why.* The unit cannot know which units take a prefix or what else a symbol means; the invented symbols were wrong
-  (`km²`, `kmin`, `mkg`, `mmm`, and collisions such as `cd` and `dam`). No production code used them. The TCK tests no prefixes.
-- *Rejected.* Conservative auto-naming (still `kmin`, `mmm`, `cd`, `dam`); keeping it as it was.
-- *Left as documented.* Prefixed ohm names stay `kiloohm` and `megaohm` (descriptive, never parsed; the contraction `kilohm`
-  was not verified against the SI Brochure). In a user file `@prefixed u k` checks only `ku`, and `UomUnitFormat.with` does not
-  detect a prefixed reading that equals an existing exact symbol: the exact symbol wins (`ft` is the foot), and detecting it
-  would reject legitimate systems.
-- *Revisit if.* A real collision bites a user (detect it in `with` and in the loader); `kilohm` is wanted (a small rule in the
-  parser's naming).
-- *See.* [CUSTOM-UNITS.md](CUSTOM-UNITS.md); `UnnamedUnitTextTest`, `DefinitionParserTest`, `UnitFormatTest`.
+### 1.3 Out of scope for 1.0
 
-**DR-07 Unit identity and printing.**
-- *Decision.* `getSystemUnit()` returns a named system unit itself (`SI.NEWTON` keeps `N`), for another named unit the
-  system unit of its quantity type (DR-25), else the unscaled unit of the same atoms with the label of the atoms as symbol (a symbol built by `multiply`, such as `m·m`, is no name: the product of two
-  lengths is `m^2`). An unnamed unit prints as the standard format writes it (`mHz`, `km`, `1000·min`) through the
-  `spi.UnitTexts` hook of the provider, else as its definition (`1000·m`, `K + 5`); a re-entrancy guard keeps `toString` from
-  recursing. A dimensionless quantity prints as its number alone (`5.0`), which parses back; a unit of dimension one with
-  a symbol keeps it (`2.0 rad`). `compareTo` on `-0.0` follows `Double.compare` (documented). A system that gives a unit of
-  another type with the same dimension is accepted by `toSystem` (DR-02).
-- *Why.* The old system label for an unnamed unit lied (`METRE.multiply(1000)` printed `m`); the unit-api Javadoc of
-  `getSystemUnit` does not require `this`, but keeping symbol and name avoids a copy. Indriya prints the bare number too.
-- *Rejected.* Printing a unit's system label; always the definition (`1|1000·Hz` for a millihertz); `5.0 1` for dimensionless.
-- *Revisit if.* `toString` calling the provider and a format is considered too implicit (print only the definition, no hook
-  and no guard); users prefer `5.0 1`. Code: `UomUnit.toString`, `getSystemUnit`, `UomUnitFormat`, `UomQuantityFormat`.
-- *See.* [PROVIDERS.md](PROVIDERS.md) (how units print); `DimensionlessTextTest`, `SystemUnitNamesTest`.
+- User-defined quantity types: the 33 standard types are the set; users add units of them (F18). Quantity types
+  beyond the 33: poise, stokes and oersted stay untyped.
+- Typed products and quotients in `uom-jsr`: JSR-385 `multiply` and `divide` return `Quantity<?>`, narrowed by
+  `asType` or `as`. `uom` has them.
+- What Indriya offers beyond JSR-385: other number types, mixed quantities, quantity ranges, logarithmic and
+  exponential converters, annotated units, the EBNF and locale unit formats, quantity streams ([JSR.md](JSR.md), "Only
+  in Indriya").
+- Systems with base units or dimensions of their own (`g·cm/s` in CGS, ESU, EMU and Gaussian as dimension systems):
+  a separate library on top of uom (DR-13).
+- Arbitrary precision for transcendental conversions beyond `BigDecimal` and `MathContext`; database, JSON and
+  framework integrations; Android or Java below 17.
 
-**DR-08 Superscript exponents.**
-- *Decision.* A formula reads superscript digits (`⁰¹²³⁴⁵⁶⁷⁸⁹`, `⁻`) glued to a symbol, a `pi` or a `)` as an integer exponent
-  (`m/s²`, `s⁻¹`, `kg·m²/s³`, `(m/s)²`); a token that is a symbol as a whole wins (catalog `m²`, `cm²`), so `km²` is
-  `(km)^2`. Output stays ASCII (`m/s^2`) by default; `UomUnitFormat.withSuperscripts(true)` returns a format that writes
-  superscripts, and a `UomQuantityFormat` over it does too. `toString` and the standard provider format stay ASCII. An
-  exponent right after a symbol that already ends in a superscript keeps its caret (`m²^2`).
-- *Why.* Only the catalog symbols `m²`, `m³`, `cm²`, `in²`... parsed, as exact symbols, so `m²` worked and `m/s²` did not. The
-  SI reading of `km²` is `(km)^2`. Writing is a separate choice: switching the default would change every `m^2`, `s^-1` and
-  `kg·m^2/s^3` in outputs, tests and docs, and depends on a Unicode console.
-- *Rejected.* Unicode as the default output; reading only `²` and `³`; making a superscript run part of a symbol only when
-  the symbol exists (that is the exact-symbol rule, kept).
-- *Revisit if.* Users want Unicode by default (flip the default, regenerate the pinned strings), or in `toString`, or through
-  the JSR-385 `FormatService` by name (not done: the format service ignores the variant). `m²²` stays `m^22`: a
-  superscript run is one exponent. Code: `FormulaEvaluator` (`atom`, `term`), `UomUnitFormat.withSuperscripts`.
-- *See.* [CUSTOM-UNITS.md](CUSTOM-UNITS.md) (formulas); `SuperscriptTest`, `FormulaEvaluatorTest`.
+### 1.4 Constraints
 
-**DR-09 System units as constants of `SI`.**
-- *Decision.* The system unit of every quantity type is a public constant of `SI`, the same instance as the factory's
-  (`SI.WATT == PowerFactory.SYSTEM_UNIT`). The three that no `si.units` line can define, because their symbol has a `/` or is
-  `1`, are generated from `quantity-types.txt` as `SI.METRE_PER_SECOND`, `SI.METRE_PER_SECOND_SQUARED` and `SI.ONE`; they are
-  constants of the class, not units of the system (`SI.UNITS` keeps its 128). Spelling is `METRE`, as everywhere in the catalog.
-- *Why.* 30 of the 33 types already had one, but `Speed`, `Acceleration` and `Dimensionless` had none, so `SI.METRE_PER_SECOND`
-  did not exist. The data is single-sourced (`si.units` and `quantity-types.txt`); only the generated Java expression of a
-  unit sits in the factory, and `SI` refers to it.
-- *Rejected.* Making the factories refer to `SI` (the reverse): `SI.PREFERRED` is built from the factory units, so a factory
-  initialised first would read a null `SI` field, and `quantity` would depend on `systems`, which depends on `quantity`
-  already. American spellings (`METER`): a second spelling of about 130 constants. Putting the three into `SI.UNITS`: a symbol
-  with `/` cannot be looked up as a symbol.
-- *Revisit if.* The factories should own nothing: make `SI.PREFERRED` and the other catalogs use `SI` constants, then point the
-  factories at `SI`, and resolve the initialisation order with a test that touches each class first. Code: `CatalogEmitter`
-  (the extras), `Generate`.
-- *See.* `SiSystemUnitsTest`, `SharedUnitsTest`.
+- Maven, multi-module; Java 17 baseline, releases built with JDK 21 (DR-11); Apache-2.0.
+- The only third-party runtime dependency is `javax.measure:unit-api` 2.2, and only `uom-jsr` has it.
+- No dynamic proxies; class path and module path on JDK 17 through the current JDK; no annotation processing.
+- The generator is an internal tool that emits plain Java and is not published.
+- The `.units` data is authored from the SI Brochure, NIST and CODATA, never copied from GNU units (GPL).
 
-**DR-10 `X.from(Quantity<?>)` narrows to the typed interface.**
-- *Decision.* Each of the 33 typed interfaces has `static X from(Quantity<?> quantity)`. It narrows as `asType` does (by
-  dimension, DR-02), returns a quantity of this implementation as it is (`Speed.from(speed)` is `speed`), keeps value, unit,
-  scale and precision, throws `ClassCastException` for another dimension or for a quantity of another implementation, and
-  `NullPointerException` for null. The logic is one package-private helper, `QuantityTypes.narrow`; the 33 methods are
-  one-liners.
-- *Why.* Our typed interface cannot be the type token of `asType` (`Speed` is not a `Quantity<Speed>`), so callers wrote
-  `(Speed) q.asType(javax.measure.quantity.Speed.class)`. In the documents 4 of 6 such uses narrow the result of
-  `UomQuantityFormat.parse` and 2 a product: expressions whose static type is the standard `Quantity<?>`.
-- *Rejected.* An instance method with an `asType`-like name on our quantities: it only works where the expression's static
-  type is ours, so it needs a new public `UomQuantity` interface and narrowed return types for `multiply`, `divide` and
-  `UomQuantityFormat.parse`, and it does not help what comes back through standard APIs. Typed products
-  (`Length.divide(Time)` returns `Speed`): needs a table of relations, out of scope.
-- *Revisit if.* Fluent chaining is wanted: add an instance method on a new `UomQuantity` additively; `from` blocks nothing.
-  Done in DR-19 (`as(Class)`); `from` stays for quantities typed as the standard `Quantity<?>`.
-  Typed products, if relations between types are declared. Code: `SourceEmitter` (interface template and registry).
-- *See.* README, "Typed quantities and unit declarations"; `FromTest`.
+### 1.5 Acceptance criteria for 1.0
 
-**DR-11 Java 17 is the baseline.**
-- *Decision.* `maven.compiler.release` is 17 and the enforcer requires JDK 17 or later; CI builds on JDK 17, 21 and 25,
-  and releases are still built and checked with JDK 21 (RELEASING step 5).
-- *Why.* Much of the JSR-385 audience is on older JDKs (Indriya targets Java 8). Going from 21 to 17 cost three APIs:
-  `Math.divideExact` (18) became `Math.toIntExact((long) a / n)`, which keeps the `MIN_VALUE / -1` overflow that
-  `UomDimensionTest.rootEdgeCases` pins; `BigDecimal.TWO` (19) became `BigDecimal.valueOf(2)`;
-  `InvalidObjectException(String, Throwable)` (19) became `initCause`. Tests: two `BigDecimal.TWO` and one
-  `List.reversed()` (21).
-- *Rejected.* Java 11: about 70 syntax sites in main (16 records, 6 of them public API types in `core.parse`, pattern
-  `instanceof`, text blocks, switch rules, one `sealed`) and more in tests. Java 8: also a multi-release jar for
-  `module-info`, about 70 uses of Java 9 to 11 APIs and a changed generator output. Measured estimates in
-  `git show ba4f92f:docs/TODO.md`, item 9.
-- *Revisit if.* Users ask for 11 or 8. The javadoc tool of JDK 17 warns "no comment" on the serialized form of the
-  `Serializable` records `UomDimension` and `UnitAtom`, which fails the `release` profile, so a release on JDK 17 needs
-  that solved first.
-- *See.* `pom.xml`, `.github/workflows/ci.yml`, REQUIREMENTS section 3.
+1. Typed `double` and `BigDecimal` quantities for all 33 types in both APIs, and user `.units` files. Met.
+2. `uom-jsr` quantities are accepted by generic JSR-385 code, and the TCK passes. Met.
+3. The catalogs of F6, with the round trip (N6) for every unit. Met.
+4. Units and quantities parse and format. Met.
+5. Units and quantities survive serialization round trips. Met.
+6. Module path and class path, JDK 17 and the current JDK: CI on JDK 17, 21 and 25, `scripts/verify-release.sh` on
+   JDK 21. Met.
+7. Artifacts on Maven Central with the documentation: prepared; the release is the owner's step
+   ([RELEASING.md](RELEASING.md)).
 
-**DR-12 Information units are a catalog of their own, untyped, with binary prefixes.**
-- *Decision.* `data/information.units` generates `Information` (in `UnitSystems.all()` and so in the standard format):
-  `bit` is a dimensionless alternate atom (`bit ~`, as `rad` is in SI) and `B` is `8 bit`, both `UomUnit<?>`. `@prefixed`
-  accepts the binary prefix symbols (`Ki` to `Yi`) next to the metric ones; a line with a metric prefix makes the unit
-  take metric prefixes at run time, a line with a binary prefix binary ones (`UomSystemOfUnits.isBinaryPrefixable`). A
-  unit that takes binary prefixes takes only the metric prefixes from kilo up. `kB` is 1000 B and `KiB` 1024 B (IEC
-  80000-13).
-- *Why.* Users expect `MiB` to parse, and `Unit.prefix(BinaryPrefix.KIBI)` already worked without a way to read or
-  write the result. The bit and the byte are not SI units, so they do not belong in `SI`. JSR-385 has no information
-  quantity type, and the 33 generated types are a closed set (REQUIREMENTS F14). The kilo rule keeps `dB` (decibel to
-  most readers) and `mB` from parsing as fractions of a byte, which nobody means.
-- *Rejected.* Adding the units to `SI`: lists non-SI units and changes its pinned size. An own `Information` quantity
-  type: extends the closed set and has no `javax.measure.quantity` counterpart for `asType`. Making binary prefixes
-  apply to every prefixable unit: IEC 80000-13 reserves them for information (`Kim` would parse). Restricting the run-time
-  prefixes to the listed ones: changes the rule for every other unit (`Mm` and `dam` parse today).
-- *Revisit if.* Users ask for typed information quantities or a data rate type (`bit/s` works untyped). The bit is
-  dimensionless like the radian, so a quantity in bytes converts to `ONE` (1 B is 8), as 1 rad converts to 1.
-- *See.* [UNITS.md](UNITS.md), [CUSTOM-UNITS.md](CUSTOM-UNITS.md) (`@prefixed`), `UnitFormatSystemsTest`.
+### 1.6 Risks
 
-**DR-13 A system is a catalog over the SI dimensions; other dimension models belong in a separate library.**
-- *Decision.* A system of units is a catalog plus a preferred unit per quantity type; every unit is an exact factor of
-  SI units, `getSystemUnit()` and `Dimension` are SI-based, and a system has no base units of its own (`cm`, `g` and `s`
-  are members of `CGS`, not its base). Values convert between all systems, electromagnetic CGS units included (1 C is
-  2.99792458E9 Fr), but the formulas of ESU, EMU and Gaussian units do not hold. The README says so ("Systems of
-  units").
-- *Why.* The JSR-385 API assumes a single dimension model: `Dimension.getBaseDimensions` and `Unit.getBaseUnits`
-  have integer exponents, `isCompatible` is global, and the quantity types (`MagneticFluxDensity`, ...) are fixed SI
-  dimensions. A system-dependent model would break unit equality (F21) and the typing of `asType`.
-- *Rejected.* A per-system base-unit view in uom (`kg·m/s` as `g·cm/s` in CGS; option B of the former TODO item 15):
-  feasible without core changes, since the base units of CGS or US customary are exact scalings of SI base units, but
-  it is presentation that JSR-385 does not ask for, and it belongs with the model below. Distinct dimension systems for
-  ESU, EMU and Gaussian (option C): needs another dimension model, see the follow-up.
-- *Follow-up: a separate library on `uom-jsr`.* Converting the way GNU units does with `--units gauss` (probed with GNU
-  Units 2.27): it redefines its primitive units per system (`sqrt_cm` and `sqrt_g` as base units, `m` as `100 sqrt_cm^2`,
-  the ampere as `10 c statA` in Gaussian units, with Coulomb's constant 1 and `epsilon0`, `mu0` rescaled) and keeps every
-  other definition, so every unit is expressed in the system's base units (`coulomb` is
-  `2.9979246e+09 sqrt_cm^3 sqrt_g / s`) and conformability depends on the system:
+- **Two APIs to keep in step** (formats, systems, serialization, documentation): `ParityTest` and `FormatParityTest`
+  check that both give the same results (DR-21).
+- **API friction in JSR-385:** the standard fixes parameter types such as `Quantity<Length>`, so `uom-jsr`'s types
+  cannot be stricter on inputs.
+- **Dimension ambiguity:** a formula determines a dimension, not a type; hertz and becquerel, gray and sievert need
+  explicit typing (F16).
+- **Electromagnetic CGS:** treating ESU, EMU and Gaussian units as conversion factors converts values, not formulas;
+  [NATIVE.md](NATIVE.md) says so ("Systems of units").
 
-  | | SI | `--units gauss` | `--units emu` | `--units esu` |
-  |---|---|---|---|---|
-  | `oersted` to `gauss` (H and B) | not conformable | 1 | 1 | not conformable |
-  | `statvolt/cm` to `gauss` (E and B) | not conformable | 1 | not conformable | not conformable |
-  | `statfarad` to `cm` | not conformable | 1 | not conformable | 1 |
-  | `coulomb` to `statcoulomb` | 2.9979246e+09 | 2.9979246e+09 | 2.9979246e+09 | 2.9979246e+09 |
-
-  Such a library projects a uom unit into a system with what the pinned `uom-jsr` API already offers: `UomUnit.atoms()`
-  (SI and alternate atoms with exponents), `toSystemConverter().factor()` and `offset()` (an exact `Factor`, with
-  rationals, powers of pi and roots), `getDimension()`, and `DefinitionParser` for system files in the same syntax. Per
-  system it substitutes each SI base atom by a factor times its own base atoms (`m` is `100 cm`, `A` is `10 c statA` with
-  c exact, so the factors stay exact), with a dimension model of its own (half-integer exponents, or `sqrt_cm`-style
-  atoms to keep integer exponents) and a system-scoped conversion that returns untyped quantities, since B and H, say,
-  are one quantity in Gaussian units and two JSR-385 types. To keep in mind: the `.units` data files are not in the uom
-  jars (the library ships its own or uses the catalog constants); an offset unit projects by its factor only, as in unit
-  products; the `uom-jsr` methods above become its contract (pinned by `ApiSurfaceTest`, semantic versioning from 1.0).
-  The design of the original uom library had the same aim: its parser took a selectable reference system file
-  (`si.system`, "for now, only SI is supported").
-- *Revisit if.* Users of uom need system base units for JSR-385 types, or the separate library needs more of
-  `uom-jsr` than the methods above.
-- *See.* README, "Systems of units"; REQUIREMENTS section 2 (out of scope) and section 6.
-
-**DR-14 Mixing precisions: the decimal wins.**
-- *Decision.* An operation on a `double` and a `BigDecimal` quantity (add, subtract, multiply, divide, `compareTo`) is
-  decimal: the `double` value is read as its shortest decimal (`BigDecimal.valueOf`), the result is a `BigDecimal`
-  quantity in the decimal operand's context, in either operand order. `isEquivalentTo` against a `double` operand keeps
-  the `double` tolerance. A NaN or infinite `double` throws `ArithmeticException` in that arithmetic; `compareTo` keeps the
-  `Double.compare` order for it. Scalar arguments keep adopting the receiver's precision (F23).
-- *Why.* The former rule, the lower precision wins, was right about accuracy: a `double` operand carries 15 to 17
-  digits, and doing the arithmetic in `double` adds about one more rounding error of that size, so promoting does not
-  make a result more accurate. But `BigDecimal` is chosen for exact decimal arithmetic, not for more digits, and under
-  that rule one `double` quantity made a result binary without a signal (decimal `0.1 m` plus `0.2 m` was
-  `0.30000000000000004 m`), which then spread through every later step. The `double` operand is usually the decimal the
-  user wrote: `Length.of(2, m)` is stored as a `double` (F5). The former rule also contradicted itself: a `double`
-  scalar was already read as its shortest decimal (`multiply(0.2)` on a decimal stayed decimal), and "lower" ranked
-  `double` below `DECIMAL32` although it has more digits. Equivalence is about the accuracy of the inputs, so it keeps
-  the coarser tolerance: with the decimal one (10^-33 at `DECIMAL128`), decimal `0.3` would no longer be equivalent to
-  `double` `0.1 + 0.2`.
-- *Rejected.* The lower precision wins (float contagion, as in Common Lisp and Python's `Fraction + float`): silent loss
-  of decimal exactness. Refusing to mix (Python's `Decimal + float` is a `TypeError`, C# has no implicit `decimal` and
-  `double` arithmetic): generic JSR-385 code that mixes quantities from different sources would fail at run time, and
-  so would every `Length.of(2, m)` with a decimal. Indriya promotes even `double` with `double` to `BigDecimal` (probed
-  with 2.2); uom keeps `double` arithmetic `double`.
-- *Revisit if.* Users need to detect mixing: a strict mode could throw instead, without changing the default.
-- *See.* REQUIREMENTS F23; `AbstractDoubleQuantityMixedTest`, `AbstractDecimalQuantityArithmeticTest`; the
-  `mixedPrecision` example.
-
-**DR-15 Irrational factors are evaluated by enclosure and rounded correctly.**
-- *Decision.* A factor with pi or a root is enclosed in an interval by directed rounding; a decimal result rounds both
-  ends of the enclosure of the whole expression and doubles the digits until they agree (Ziv's strategy), starting at
-  the context's digits plus 10. A cap of 1000 digits plus twice the digits of the context and the operands stops
-  irrational terms that cancel exactly: then the lower end rounds and `compareTo` returns 0.
-- *Why.* The former fixed guard digits rounded wrongly at near-ties (pi to 761 digits, sqrt(2) to 2706 under
-  `HALF_UP`), lost cancellations deeper than about 25 digits beyond the operands, and grew with the operands' digits
-  (comparing a two-million-digit value with one pi-metre computed two million digits of pi). An enclosure proves the
-  rounding and needs only the digits the decision needs.
-- *Rejected.* More fixed guard digits: cheaper to write, never proven, and still sized by the operands. Exact algebraic
-  arithmetic over pi and roots: a different number system for a rare case.
-- *Revisit if.* A unit's factor and offset are both irrational in practice, so the cap is reached.
-- *See.* Section 4, "Irrational factors"; `IrrationalsTest`, `AbstractDecimalQuantityArithmeticTest`,
-  `ConvertersDecimalTest`.
-
-**DR-16 A definition file sees only what it includes.**
-- *Decision.* A file's formulas, `@preferred`, `@prefixed` and `@member` lines resolve the symbols the file defines,
-  those of the files it includes or extends (transitively) and the built-in symbols; a unit of another file, even one
-  the root defined earlier, is `unknown unit`. Every file's `@system`, `@extends` and `@member` lines are recorded and
-  checked, not only the root's, so `UomSystemOfUnits.load` builds the root and its parents from one parse.
-- *Why.* An extended parent was parsed a second time on its own to build its system, which made a chain of n files
-  cost n^2 / 2 file parses (500 files of 40 units: over 10 s). One parse is exact only if a parent cannot see the file that extends
-  it, so visibility must follow the includes. The rule is the one the generator already applies (it parses every data
-  file on its own), and it holds for `@include` and `@extends` alike.
-- *Rejected.* Visibility in parse order (an included file saw every unit parsed before it): files then depended on
-  where they were included, and a parent could not be built from the root's parse. Keeping that rule and parsing
-  parents again: quadratic in the depth of `@extends`.
-- *Revisit if.* Users need shared definitions without an `@include` in each file.
-- *See.* docs/CUSTOM-UNITS.md, "Definition lines" and "Directives"; `DefinitionParserTest`, `UserUnitsTest`.
-
-**DR-17 Labels belong to a format instance and never change `toString`.**
-- *Decision.* `UomUnitFormat.label` changes that format only; `with` and `withSuperscripts` copy the labels the format
-  has then, and `standard()` returns a new format. The format service hands out one shared `UomUnitFormat`, so a label
-  set there applies to every user of the service. `toString` of units and quantities ignores all labels. The labels of a
-  format are one immutable snapshot, replaced under a lock, so a reader never sees half an update.
-- *Why.* The unit-api Javadoc calls a label system-wide but defines that as every use of the same format instance,
-  assuming a singleton; the service's shared format is that instance. Labels in a JVM-wide registry would be global
-  mutable state, as the alternate-unit registry is (TODO item 23): one library's label would change how another parses.
-  Keeping `toString` independent keeps log output and test assertions stable whoever labels what.
-- *Rejected.* JVM-wide labels; `toString` through the service's labelled format, as Indriya prints through
-  `SimpleUnitFormat.getInstance()` (probed with 2.2: after `label(kmh, "kmh")` every `toString` of that unit is `kmh`,
-  and the last label wins).
-- *Revisit if.* Users need one label to apply to every format they create.
-- *See.* `UomUnitFormat` class Javadoc; `UnitFormatTest.labelsBelongToTheirFormatAndNeverChangeToString`.
-
-**DR-18 Decimal `isEquivalentTo` is exact.**
-- *Decision.* Two decimal quantities are equivalent when `compareTo` is 0: the exact system-unit values agree, whatever
-  their contexts. A `double` on either side keeps the relative tolerance `1e-12`.
-- *Why.* The former tolerance `max(|a|, |b|) * 10^(1 - p)`, `p` the lower precision of the contexts, followed the
-  context, which rounds results but says nothing about how precise a value is: at precision 1 every two values of the
-  same sign were equivalent (`1 m` and `100 m`), at precision 2 `1 m` and `1.1 m`. The unit-api Javadoc asks for
-  `that ≡ this`; Indriya 2.2 compares exactly (`compareTo == 0`), pint and UnitsNet compare exactly and offer tolerance
-  as an explicit call. Decimal `compareTo` is exact, through pi and roots too (DR-15), so no conversion noise needs a
-  tolerance; `double` arithmetic does, so it keeps one.
-- *Rejected.* A tolerance of one unit in the last place at the context precision: still context-driven, and `1 m` and
-  `1.9 m` stay equivalent at precision 1. Keeping the old rule with a minimum precision.
-- *Revisit if.* Users compare values rounded on their way (a converted `57.29577951308232087679815481410517°` is not
-  `1 rad`): an explicit tolerance method, such as `isEquivalentTo(that, relativeTolerance)`, would serve them.
-- *See.* `AbstractDecimalQuantityArithmeticTest.decimalEquivalenceIsExactWhateverTheContext`; REQUIREMENTS F20.
-
-**DR-19 `UomQuantity`: one interface for what JSR-385 lacks.**
-- *Decision.* `org.tinygears.uom.jsr.quantity.UomQuantity<Q, R>` extends `Quantity<Q>` and `Comparable<Quantity<Q>>`,
-  narrows the return types of the JSR operations to `R`, and adds `as(Class)`, `isCloseTo(that, relativeTolerance)`,
-  `isCloseTo(that, absoluteTolerance)`, `toSystem`, `toDouble` and `toDecimal`. Both base classes implement it, each
-  generated typed interface is `X extends javax.measure.quantity.X, UomQuantity<javax.measure.quantity.X, X>` (it no
-  longer redeclares the operations), `Untyped` is `UomQuantity<Untyped, Untyped>`, and `multiply(Quantity)`,
-  `divide(Quantity)`, `inverse()` and `UomQuantityFormat.parse` return `UomQuantity<?, ?>`. Each addition's Javadoc
-  says why it exists and how it differs from the JSR method nearest to it.
-- *Why.* The additions lived in 33 generated interfaces and the base classes, with nothing to type a product or a parse
-  result by. A tolerance comparison is asked for once `isEquivalentTo` is exact (DR-18), and `as` removes the casts of
-  `asType`. The narrowed return types keep the JSR signatures: covariant returns, so code written against JSR-385 is
-  unaffected.
-- *Rejected.* Overloading `asType` for our interfaces: `<T extends UomQuantity<?, T>> T asType(Class<T>)` has the
-  erasure of the JSR method and does not compile. `isEquivalentTo(that, tolerance)`: the JSR name promises an
-  equivalence relation, a tolerance is not transitive. A static helper class: no chaining, and nothing to type results.
-- *Revisit if.* More additions are wanted; the interface is not meant to be implemented elsewhere, so methods can be
-  added. The erased return type of an inherited operation is `UomQuantity` (reflection sees `R`, Java callers see the
-  typed interface); redeclare the operations in the typed interfaces if a JVM language or tool needs the erasure.
-- *See.* `UomQuantity` Javadoc; `UomQuantityTest`, `AbstractDecimalQuantityArithmeticTest`, `AbstractDoubleQuantityTest`.
-
-**DR-20 Explicit type assignments stay structural.**
-- *Decision.* `@preferred Type unit` (user files and data files) and `[Type]` (data files) require the unit's system unit
-  to equal the type's, atoms included: `@preferred Frequency Bq`, `@preferred Angle sr` and `[Frequency]` on a unit of
-  becquerels are errors (`unit 'x' is not a unit of Frequency`). `asType` keeps the dimension rule (DR-02).
-- *Why.* A declaration states what a unit is for a type, and the atoms are what tell `Hz` from `Bq` and `rad` from `sr`;
-  every dimensionless unit has the same dimension. By dimension, `toSystem` of a clock rate could give becquerels, and
-  the generator would type a becquerel unit as `Frequency`. `asType` answers another question, whether a quantity can
-  be viewed as a type, which the JSR-385 Javadoc defines by dimension. Inferring a type stays structural in any case.
-- *Rejected.* Accepting any unit of the type's dimension in the declarations, for symmetry with `asType`.
-- *Revisit if.* A real catalog needs to declare an alternate unit of another atom as the preferred unit of a type.
-- *See.* docs/CUSTOM-UNITS.md, `@preferred`; `UserUnitsTest.preferredErrors`, `CatalogBuilderTest`.
-
-**DR-21 A native API next to the JSR-385 implementation.**
-- *Decision.* Complete the split of docs/NATIVE-API.md: the native API, with its own `Quantity<Q>` and `Unit<Q>` over
-  this library's types, becomes the artifact `uom` (packages `org.tinygears.uom.*`), the JSR-385 implementation moves
-  to `uom-jsr` (`org.tinygears.uom.jsr.*`); both build on `uom-engine` and its quantity arithmetic. The native API keeps
-  the JSR-385 model of offsets, a `Scale` on the quantity. The JSR-385 core and the generated JSR-385 types are one
-  module, `uom-jsr`, which also converts to and from the native API (`Jsr`).
-- *Why.* Inside JSR-385 our types cannot be unit type parameters or type tokens and products cannot be typed (section
-  1 of NATIVE-API.md). The prototype showed both are solved by a native API, that the engine carries the algebra,
-  parser and arithmetic for both (the arithmetic moved without a change of results or speed), and that a conversion
-  between the APIs costs about one arithmetic operation.
-- *Rejected.* Keeping the single JSR-385 implementation (the workarounds stay: `var`, `as`, untyped products). The
-  native API with the JSR-385 side as thin wrappers over it: one extra object per JSR operation, and the native API
-  would have to cover all of JSR-385 before the adapter works. Separate point and difference types (`Temperature`,
-  `TemperatureDifference`) instead of `Scale`: a new design, and the bridge would map a scale to a type.
-- *Revisit if.* Keeping two APIs in step (formats, systems, serialization, documentation) costs more than users of the
-  native API gain; then one of the rejected options.
-- *See.* docs/NATIVE-API.md; `NativeQuantityTest`, `ParityTest`, `RelationsParserTest`, `NativeGenerationTest`.
-
-**DR-22 Decimal values and contexts are bounded to 50000 digits.**
-- *Decision.* `MAX_PRECISION` is 50000, half of `MAX_SCALE` (100000), and bounds both the precision of a context and
-  the digits of every decimal value: at creation, after each operation (an exact result in `UNLIMITED` included), in
-  the serial form and in the quantity format, which refuses a longer number before the `BigDecimal` parse.
-- *Why.* At a precision equal to the scale bound, inexact results below 1 passed the scale bound (`0.1 m / 3` at
-  precision 100000 threw `scale out of range`); at half of it they stay valid down to 1e-50000. The `BigDecimal`
-  parse is quadratic in the digits (100000 in 0.1 s, a million in 11 s), so an unbounded number text cost seconds; the
-  digit count is linear and checked first.
-- *Rejected.* Keeping 100000 and documenting the throw. A digit bound at the format only: arithmetic in `UNLIMITED`
-  could still build values the format and the serial form would refuse.
-- *Revisit if.* A use case needs exact values or contexts of more than 50000 digits.
-- *See.* `Precision`, `NumberText`; `AbstractDecimalQuantityTest.digitsAndPrecisionAreBounded`,
-  `DecimalParseTest.digitsBeyondTheBoundAreAParseError`, `NativeFormatTest`, `QuantitySerializationTest`.
-
-**DR-23 One JVM-wide registry of alternate units, with all-or-nothing loads.**
-- *Decision.* Alternate units stay in one JVM-wide registry (`AlternateUnits`). It holds the base atoms and the seven
-  built-in alternate units (`rad`, `sr`, `Hz`, `Bq`, `Gy`, `Sv`, `bit`) from its initialisation; a load of `.units`
-  files (`DefinitionParser.parse`, `UnitSystemLoader.load`) registers its alternates all or nothing; the alternate of
-  an atom's unit under the atom's own symbol is that unit (`rad.alternate("rad")`, as `m.alternate("m")`). A symbol
-  of a successful load stays bound until the JVM restarts.
-- *Why.* JSR-385 `Unit.alternate` must throw for a symbol "already associated to a different unit", which needs a
-  record of the symbols. Before, a failed load left its symbols bound, `rad.alternate("rad")` threw while
-  `m.alternate("m")` did not, and a conflicting `alternate("Hz")` before `SI` loaded broke the `Frequency` factory.
-  The reservation is a fixed list in the engine, which knows no catalog; a test compares it with the `~` lines of
-  `data/`. Loading the catalogs on the first registration instead would initialise catalog classes from inside
-  another catalog's initialisation.
-- *Rejected.* A scoped registry, alternates of a run-time file living in its system with the definition part of an
-  atom's identity: two loads could then define one symbol differently, but `UnitAtom` equality, the serial form and
-  formatting (one symbol, two units) would change, for a need nobody has.
-- *Revisit if.* One JVM has to load conflicting definitions of a symbol (several tenants, reloading edited files).
-- *See.* `AlternateUnitsTest` (engine and `uom-jsr`), `UserUnitsTest.aFailedLoadLeavesNoAlternateUnits`,
-  `QuantityTypesIsolationTest`.
-
-**DR-24 Preferred units taken from SI are not members of a system.**
-- *Decision.* Every system has a preferred unit for all 33 types (its own `@preferred`, else the first extended
-  system's, else SI's), so `toSystem(system)` works for every typed quantity; a unit taken from SI is not a member:
-  `getUnit(String)`/`unit(String)` and `getUnits()`/`units()` do not have it. The Javadoc and the user documents say so.
-- *Why.* JSR-385 defines `getUnits()` as "the units explicitly defined by this system" and `getUnit(Class)` as "the
-  default unit for the specified quantity"; a second listed for US customary is a default, not a definition of that
-  system. Listing the fallback units would add up to 24 SI units (`A`, `mol`, `cd`, ...) to a system's members, and
-  to `docs/UNITS.md` with them.
-- *Rejected.* Fallback units as members. Null for a type without its own or an inherited `@preferred`, as
-  systems-common 2.1's `USCustomary` and `Imperial` do for every type: `Time.toSystem(USCustomary.SYSTEM)` and 155
-  other pairs would throw.
-- *Revisit if.* Users expect `getUnits()` to cover every preferred unit, or a system needs to state that it has no
-  unit for a type.
-- *See.* `SystemsCatalogTest.fallbackPreferredUnitsAreNotMembers`, `NativeFormatTest.fallbackPreferredUnitsAreNotMembers`.
-
-**DR-25 A named unit's system unit is the system unit of its quantity type.**
-- *Decision.* `getSystemUnit()` (`systemUnit()` in `uom`) of a named unit that is not itself a system unit returns the
-  named system unit of the standard quantity type with its atoms: `kPa` gives `Pa`, `kJ` `J`, `psi` `Pa`, `kn` `m/s`. An unnamed unit (`N·m`, `kPa·2`) and a named unit of no standard type (`P`, the poise) keep the label of
-  their atoms (`kg·m^2/s^2`, `kg/(m·s)`). `uom-jsr` finds the type through the `spi.SystemUnits` hook of its provider,
-  `uom` through the unit's type.
-- *Why.* `kPa.getSystemUnit()` printed `kg/(m·s^2)` and a pressure in system units `5000.0 kg/(m·s^2)`; Indriya gives
-  `Pa`. A named unit has a quantity type (the catalogs and loaded files type them by their system unit), and that type
-  has exactly one named system unit; an unnamed product has no such claim, so `N·m` does not become `J`.
-- *Rejected.* Keeping the unit a unit was derived from (an engine field and a serial-form change; the native catalogs
-  build `kPa` from base units, not from `Pa`). A lookup by atoms for every unit: `N·m` would print as `J`.
-- *Revisit if.* Unnamed units should print named system units too, or a quantity type gets two named system units.
-- *See.* `SystemUnitNamesTest`, `UomUnitTest.systemUnitSymbols`, `NativeQuantityTest.namedUnitsTakeTheSystemUnitOfTheirType`;
-  [INDRIYA.md](INDRIYA.md), "System units of prefixed derived units".
-
-**DR-26 The Greek mu and the lowercase litre are read, not written.**
-- *Decision.* The unit format reads the Greek small mu (U+03BC) as the micro sign (U+00B5) and `l` as the litre `L`,
-  plain or with a metric prefix (`μm`, `ml`, `μl`, `dal`), after the exact symbols and the prefixed forms, so `mol` and
-  `Gal` keep their meaning. It writes `µ` and `L`. `℃`, `㎥`, `one`, `%` and `m2` stay refused.
-- *Why.* Indriya writes `μm` and `l`, and both spellings are standard rather than look-alikes: Unicode prefers U+03BC for
-  micro (U+00B5 normalises to it), and the SI Brochure gives both `L` and `l` for the litre. The others are compatibility
-  characters (`℃`, `㎥`), new units (`one`, `%`) or a syntax that clashes with symbols ending in a digit (`m2`).
-- *Rejected.* Exact symbols only (text Indriya wrote does not read back). Normalising every compatibility character.
-- *Revisit if.* Users need `℃`, `%` or another spelling read.
-- *See.* `UnitFormatTest.greekMuAndLowercaseLitreParse`, `UserUnitsTest.builtInSymbolsCannotBeRedefined`;
-  [CUSTOM-UNITS.md](CUSTOM-UNITS.md), "Symbols".
-
-**DR-27 A parsed formula keeps its text as symbol.**
-- *Decision.* A unit parsed from a formula keeps the formula, normalised, as its symbol: `m*s^-1` prints `m·s^-1`, though
-  it equals `m/s`.
-- *Why.* The symbol is what the user wrote. Printing an equal catalog unit instead would turn `kg·m^2/s^2` into `J` (the
-  energy and the torque), and a formula with a factor (`km/h`) has no label of its atoms to fall back on.
-- *Rejected.* Printing the equal catalog unit, as Indriya prints the unit it built.
-- *Revisit if.* Users expect parsed formulas to print canonically.
-- *See.* [INDRIYA.md](INDRIYA.md), "A parsed formula keeps its text".
-
-## 2. Modules and data flow
+## 2. Architecture
 
 ```
  data/quantity-types.txt ─────┐
@@ -472,7 +117,7 @@ behaviour for users is in the linked documents. The full discussion and probe re
  data/*.units ────────────────┼─> uom-codegen (internal tool, not published)
    si, us-customary,          │        │ writes sources, committed to the repo
    imperial, cgs,             │        v
-   cgs-esu, cgs-emu,          │   uom      .quantity       native types: Length, LengthValue, ... (typed products)
+   cgs-esu, cgs-emu,          │   uom      .quantity       native types: Length, ... (typed products)
    cgs-gaussian,              │            .systems        native catalogs: SI, USCustomary, ...
    information                │   uom-jsr  .jsr.quantity   JSR-385 types: Length, LengthDouble, LengthDecimal, ...
                               │            .jsr.systems    JSR-385 catalogs: SI, USCustomary, ...
@@ -482,28 +127,47 @@ behaviour for users is in the linked documents. The full discussion and probe re
 
 | Module | Contents | Published |
 |--------|----------|-----------|
-| `uom-engine` | No JSR-385 types: `Factor` (exact rationals, powers of pi, roots), `Dimension` (the seven exponents), `UnitAtom` with the base atoms, `Converter` (affine, exact), `Unit` (the unit algebra), `UnitException`, the `.units` parser (`parse`: `DefinitionParser`, `FormulaEvaluator`, with its own table of metric and binary prefixes); in a package exported to the other modules only (`internal`), the alternate-unit registry, products of atoms, and the decimal and interval arithmetic, caches and serial-form helpers; in `format`, exported to `uom` and `uom-jsr` only, the unit format, the number text of the quantity format, the systems and their loading from `.units` files (`UnitFormatter`, `NumberText`, `UnitSystem`, `UnitSystemLoader`, `Prefix`), which `UomUnitFormat`, `UomQuantityFormat` and `UomSystemOfUnits` wrap; in `arithmetic`, exported to `uom-jsr` and `uom` only, the quantity arithmetic (`DoubleArithmetic`, `DecimalArithmetic`: conversion, sums, scalars, products, comparison and tolerances on engine units and plain values) and the precision rules (`Precision`, `Deltas`). Both APIs build on it (DR-21) | yes |
-| `uom` | The native API (module `org.tinygears.uom`, docs/NATIVE-API.md): `Quantity`, `Unit<Length>` with this library's types, `Scale`, `Untyped`, `UnitFormat`, `QuantityFormat`, `SystemOfUnits` with run-time `.units` files, `Converter`, `UnitException`, `DefinitionException`, serialization; of the engine only the value types `Factor` and `Dimension` appear in its signatures, and its package `internal` (the engine side of units, exported to `uom-jsr` only) serves the generated code and `Jsr`; generated, the 33 types with the typed products of `data/quantity-relations.txt` (package `quantity`) and the eight catalogs (package `systems`); `double` and decimal quantities on the engine's arithmetic and format; no JSR-385 types | yes |
-| `uom-jsr` | The JSR-385 implementation (module `org.tinygears.uom.jsr`): `Dimension`, `Unit` and converters over the engine (`UomDimension`, `UomUnit`, `UomConverter`), the quantity base classes (`AbstractDoubleQuantity`, `AbstractDecimalQuantity`) over the engine's arithmetic, `Jsr` (the conversion to and from `uom`); package `jsr.quantity`, the generated typed interfaces, `double` and `BigDecimal` implementations and one factory per type; package `jsr.systems`, the generated catalogs and `SystemOfUnits` objects (`SI`, ..., `UomSystemOfUnits`, `UnitSystems`), the unit and quantity formats over the engine's format, run-time loading of user `.units` files, the JSR-385 `ServiceProvider`; package `jsr.spi`, the provider hooks, not exported; no `.units` resources are shipped | yes |
-| `uom-codegen` | The generator program, on the engine (its parser and units) | no |
+| `uom-engine` | No JSR-385 types: `Factor` (exact rationals, powers of pi, roots), `Dimension` (the seven exponents), `UnitAtom` with the base atoms, `Converter` (affine, exact), `Unit` (the unit algebra), `UnitException`, the `.units` parser (`parse`: `DefinitionParser`, `FormulaEvaluator`, with its own table of metric and binary prefixes). Exported to `uom` and `uom-jsr` only: `internal` (the alternate-unit registry, products of atoms, the decimal and interval arithmetic, caches and serial-form helpers), `format` (the unit format, the number text of the quantity format, the systems and their loading: `UnitFormatter`, `NumberText`, `UnitSystem`, `UnitSystemLoader`, `Prefix`) and `arithmetic` (`DoubleArithmetic`, `DecimalArithmetic`: conversion, sums, scalars, products, comparison and tolerances on engine units and plain values; the precision rules `Precision`, `Deltas`) | yes |
+| `uom` | The native API (module `org.tinygears.uom`): `Quantity`, `Unit<Q>` typed with this library's types, `Scale`, `Untyped`, `UnitFormat`, `QuantityFormat`, `SystemOfUnits` with run-time `.units` files, `Converter`, `UnitException`, `DefinitionException`, serialization; of the engine only the value types `Factor` and `Dimension` appear in its signatures. Generated: the 33 types with the typed products of `data/quantity-relations.txt` (package `quantity`) and the eight catalogs (package `systems`). Its package `internal` (the engine side of units, exported to `uom-jsr` only) serves the generated code and `Jsr`. No JSR-385 types | yes |
+| `uom-jsr` | The JSR-385 implementation (module `org.tinygears.uom.jsr`): `UomDimension`, `UomUnit` and `UomConverter` over the engine, the quantity base classes `AbstractDoubleQuantity` and `AbstractDecimalQuantity` over the engine's arithmetic, `Jsr` (the conversion to and from `uom`); package `jsr.quantity`, the generated typed interfaces, implementations and factories; package `jsr.systems`, the generated catalogs, `UomSystemOfUnits`, the unit and quantity formats over the engine's format, the `ServiceProvider`; package `jsr.spi`, the provider hooks, not exported | yes |
+| `uom-codegen` | The generator, on the engine | no |
 | `uom-tck` | Runs the JSR-385 TCK against `uom-jsr`; test only | no |
-| `uom-examples` | Runnable usage examples (`Examples`) and a test of their output | no |
+| `uom-examples` | Runnable examples of both APIs and the test of their output and of the documents' examples | no |
 
 Dependencies: `uom-jsr` -> `uom` -> `uom-engine`, and `uom-jsr` -> `unit-api`. `uom-codegen` -> `uom-engine`,
-`unit-api` and the Eclipse JDT formatter jars, on the class path (they split packages, so the generator is not a named
-module); its tests use `uom-jsr` and load the sources they compile before it. Module names: `org.tinygears.uom.engine`
-(no `java.measure`), `org.tinygears.uom` (requires the engine transitively) and `org.tinygears.uom.jsr` (requires
+`unit-api` and the Eclipse JDT formatter jars (pinned to the Spotless lockfile), on the class path (they split packages,
+so the generator is not a named module); its tests use `uom-jsr`. Module names: `org.tinygears.uom.engine` (no
+`java.measure`), `org.tinygears.uom` (requires the engine transitively) and `org.tinygears.uom.jsr` (requires
 `org.tinygears.uom`, the engine and `java.measure` transitively). The JSR-385 base classes, the generated types and
 the catalogs are one module because the typed quantities need the provider (`asType`, products, factories through
 `ServiceProvider`); its tests of the provider mechanism install a test provider for their duration
 (`TestProviderExtension`). The provider is declared with `provides` and `META-INF/services`.
 
-## 3. Units core (`uom-jsr`)
+### 2.1 Why two APIs
+
+JSR-385's generics are `Unit<Q extends Quantity<Q>>` and `Quantity<Q extends Quantity<Q>>`. `uom-jsr`'s typed
+interfaces extend the standard ones (`org.tinygears.uom.jsr.quantity.Length extends javax.measure.quantity.Length`), so
+they inherit `Quantity<javax.measure.quantity.Length>` and cannot also be a `Quantity` of themselves. Hence, inside
+JSR-385: units are typed with the standard types (`UomUnit<javax.measure.quantity.Length>`), declared with `var`,
+`Unit<?>` or the qualified standard name; type tokens are the standard classes (`as` and `X.from` narrow back, DR-10,
+DR-19); and `multiply(Quantity<?>)` returns a quantity of unknown type, so `Length.divide(Time)` cannot return a
+`Speed`.
+
+The native API is not bound to these generics: `Unit<Length> km = SI.KILOMETRE` uses this library's `Length`, and the
+relations of `data/quantity-relations.txt` give typed products. Both APIs wrap the same engine units, so `Jsr`
+converts between them by copying the value and wrapping the unit (15 to 27 ns, one or two arithmetic
+operations, JDK 25). The engine carries the algebra, the parser, the registry, the formats, the systems and the
+quantity arithmetic; the two sides give the same results (`ParityTest`, `FormatParityTest`). DR-21 records the decision.
+
+## 3. Units
+
+The engine's `Unit` holds the unit algebra; `uom`'s `Unit<Q>` adds the quantity type, `uom-jsr`'s `UomUnit` the
+JSR-385 interface. The rules below hold for both.
 
 - **Dimension.** Immutable record of the seven SI base-dimension exponents as `int` (the
   standard uses `Integer`; `root` throws on a fractional result, so no `Fraction` type is
   needed). Equality on the exponents.
-- **Unit.** One implementation class holding a system-unit decomposition (a map from atoms to
+- **Unit.** One class holding a system-unit decomposition (a map from atoms to
   integer exponents; atoms are the seven base units and the alternate units), a converter to
   that system unit, and a symbol and name. `getSystemUnit()` is the same decomposition with an
   identity converter: the unit itself if it already is a named system unit (`N` keeps its symbol and name), for another
@@ -523,19 +187,21 @@ the catalogs are one module because the typed quantities need the provider (`asT
   converter also caches the rounded `double` of its factor and offset, computed once.
   Additions to the standard interface: `convert(BigDecimal, MathContext)` (F23). A unit with an
   offset takes part in `multiply`, `divide`, `pow`, `root` and `inverse` by its factor only (the product measures
-  differences, `°C/m` is `K/m`; `docs/OFFSET-UNITS.md`).
+  differences, `°C/m` is `K/m`; [NATIVE.md](NATIVE.md), "Offset units").
 - **Powers and roots.** `pow(n)` raises factor and exponents; `root(n)` divides the exponents
   and roots the factor exactly. A factor is `(n/d * pi^k)^(1/r)` with the sign of `n` outside
   the root, so every converter stays affine and equality is structural. Ceiling: radicals are
   only normalized to a canonical form, and `n` and `d` are capped at 65_536 bits.
-- **Typing.** `asType(Class<T>)` compares the unit's dimension with the dimension of
+- **Typing.** A native unit carries its type (`Unit<Length>`; `as(Class)` narrows an untyped unit or quantity whose
+  system unit is the type's). In `uom-jsr`, `asType(Class<T>)` compares the unit's dimension with the dimension of
   `Providers.quantityFactory(type).getSystemUnit()`, as the `Unit` and `Quantity` Javadoc say. Alternate units
   therefore count by dimension: `1/s`, `Hz` and `Bq` are all units of `Frequency` and of `Radioactivity`, `rad·m` is a
   unit of `Length`, and `Hz·s` is a unit of `Dimensionless`. `Unit.equals` stays structural (F21), so `Hz`, `Bq` and
-  `1/s` are still three different units, equivalent to one another. `uom-jsr` holds no table of quantity types, so it asks a provider: the current one if it
+  `1/s` are still three different units, equivalent to one another. The core package of `uom-jsr` reaches the quantity
+  types only through a provider: the current one if it
   implements `spi.QuantityFactories` (ours does), else ours among `ServiceProvider.available()` (found once and kept),
   else the current provider. A provider of higher priority, or one set with `setCurrent`, therefore does not break
-  `asType`, the quantity `asType` or deserialization (`docs/PROVIDERS.md`). The package `org.tinygears.uom.jsr.spi`
+  `asType`, the quantity `asType` or deserialization ([JSR.md](JSR.md), "The service provider"). The package `org.tinygears.uom.jsr.spi`
   is internal to `uom-jsr`. Our provider has priority 100 and the name `TinyGears`.
 - **Prefixes.** `prefix(Prefix)` scales by the prefix value and returns an unnamed unit. Prefixability and symbol
   collisions are known to a system (`@prefixed`, `UomSystemOfUnits.isPrefixable`), so the parser, the generated catalogs
@@ -557,15 +223,26 @@ the catalogs are one module because the typed quantities need the provider (`asT
   lock on every hit made eight threads converting `SI.METRE` 15 to 25 times slower than the unbounded map.
 - **Out of scope:** non-affine converters such as logarithmic units.
 
-## 4. Quantities and generated code
+## 4. Quantities
 
-The hand-written base classes `AbstractDoubleQuantity<Q, R extends Q>` and
+The rules of quantities (precision, offsets and `Scale`, equality, ordering, bounds, irrational factors) are the
+engine's (`org.tinygears.uom.engine.arithmetic`) and hold for both APIs; this section names the `uom-jsr` classes,
+where they were first written.
+
+**Native (`uom`).** Per type the generator writes an interface (`Length extends Quantity<Length>`) with its factories
+(`of(double, Unit<Length>)`, `of(BigDecimal, ...)` with `Scale` and `MathContext`), `SYSTEM_UNIT` and the typed products
+of `data/quantity-relations.txt` (22 relations, 86 methods; `Length.divide(Time)` returns `Speed`), and a final class
+over the hand-written `AbstractQuantity`, which holds a `double` or a decimal with its context and delegates to the
+engine's arithmetic; `QuantityTypes` is the registry. A product without a relation is `Untyped`, narrowed with
+`as(Class)`. Units are `Unit<Q>` with the type, so a parsed unit or quantity is typed by its system unit.
+
+**JSR-385 (`uom-jsr`).** The hand-written base classes `AbstractDoubleQuantity<Q, R extends Q>` and
 `AbstractDecimalQuantity<Q, R extends Q>` (package `org.tinygears.uom.jsr.quantity`, `uom-jsr`)
 hold all quantity logic for `double` and `BigDecimal` values: `to`, `add`, `subtract`, `negate`,
 `multiply`, `divide`, `inverse`, `asType`, `equals`, `hashCode`, `compareTo`, `isEquivalentTo`,
 `toDouble`, `toDecimal`. They read the operands, check units and dimensions, and create the results; the arithmetic
-itself is the engine's (`org.tinygears.uom.engine.arithmetic`: `DoubleArithmetic`, `DecimalArithmetic`), which the
-native API prototype shares. The engine's `Precision` classifies operand kinds and converts between `Number` kinds. `R` is the typed interface returned by the operations that keep
+itself is the engine's (`org.tinygears.uom.engine.arithmetic`: `DoubleArithmetic`, `DecimalArithmetic`), shared with
+`uom`. The engine's `Precision` classifies operand kinds and converts between `Number` kinds. `R` is the typed interface returned by the operations that keep
 the quantity type; the typed interfaces only add covariant return types. The design's strict
 overloads such as `Length add(Length)` are not generated: generics already reject quantities of
 other types, so they add no safety.
@@ -619,7 +296,8 @@ The generator writes all 33 types of `data/quantity-types.txt`: 133 files (four 
   differences. `add` and `subtract` take the right operand as a difference (factor only, added in the left unit) if
   either operand is `RELATIVE`; the result is `RELATIVE` only if both are, else `ABSOLUTE`. `negate` keeps the scale.
   Quantity-by-quantity results and `inverse` are `ABSOLUTE` and still apply offsets to their operands. The rules live
-  in the engine's `Deltas` and the base classes and are documented for users in `docs/OFFSET-UNITS.md`.
+  in the engine's `Deltas` and the base classes and are documented for users in [NATIVE.md](NATIVE.md), "Offset
+  units".
 - **Foreign arguments (D8).** A `Quantity` or `Unit` whose unit is not a `UomUnit` is rejected
   with `UnconvertibleException`; `null` gives `NullPointerException`; an incompatible dimension
   gives `UnconvertibleException` (`compareTo`, `add`, ...) or `false` (`isEquivalentTo`).
@@ -800,8 +478,10 @@ statC:statcoulomb    1|2997924580 C           # exact fraction
   for a type without `@preferred`. Fallback units are not members (DR-24): `USCustomary.SYSTEM.getUnit(Time.class)` is
   `s`, but `getUnit("s")` is null and `getUnits()` lacks `s` (156 (system, type) pairs, 33 of them `Information`'s; SI
   itself for `m/s^2`, `1` and `m/s`).
-- **Run time (F17, F18, D5).** The parser ships in `uom-jsr`. `UomUnitFormat` resolves symbols from the
-  generated catalogs and evaluates formulas with `FormulaEvaluator`. User files load at run time, with no global state:
+- **Run time (F17, F18, D5).** The parser is in `uom-engine`; both formats (`UnitFormat`, `UomUnitFormat`) resolve
+  symbols from the generated catalogs through the engine's `UnitFormatter` and evaluate formulas with
+  `FormulaEvaluator`. User files load at run time through the engine's `UnitSystemLoader` (`SystemOfUnits.load` in
+  `uom`, `UomSystemOfUnits.load` in `uom-jsr`, below with the `uom-jsr` names), with no global state:
   - `DefinitionParser.parse(source, reader, resolver, known)` looks up symbols the file does not define through
     `known`; a file defining a symbol `known` resolves is an error (`symbol 'm' is already defined`, file and line).
     The known lookup is `UomUnitFormat.resolve(String)`: exact catalog symbols and metric prefixes, never labels.
@@ -869,11 +549,43 @@ statC:statcoulomb    1|2997924580 C           # exact fraction
 - **Consistency test.** `SiCatalogTest` checks every definition of `si.units` against the
   catalog; `UnitFormatTest` formats and parses every `SI.UNITS` entry back to an equal unit.
 
-## 6. Testing and conformance
+## 6. Serialization
+
+`Factor`, `UnitAtom`, the engine `Unit`, the converters, `UomDimension`, `UomUnit`, the quantity base classes of
+`uom-jsr` and the units and quantities of `uom` serialize through proxies (F12; a native quantity writes its type name,
+engine unit, scale and exact value). Each class returns its proxy from `writeReplace` and throws
+`InvalidObjectException("proxy required")` from `readObject`; each proxy (`serialVersionUID = 1L`) rebuilds the object
+through the public factories in `readResolve`, so every invariant is re-checked and any violation is an
+`InvalidObjectException`. Proxies write values unshared with bounded lengths (at most 1000 atoms or conversion
+steps, texts of at most 10000 characters, `NotSerializableException` on write), so the bytes depend on values only.
+Dimension exponents have no range check: dimension arithmetic uses exact `int` operations and throws on overflow.
+- A unit is its atoms and exponents, converter factor and offset (with the conversion steps), symbol and name; the
+  caches (converters, the units of products and quotients, the inverse) are transient. A multi-step converter is checked against its steps when they fold exactly, else by
+  a 60-digit decimal fold within 1e-40. Steps that cannot be checked (a part over 4096 bits, or no decimal value)
+  are dropped: the converter reads as one step, so its steps never contradict what it converts.
+- An alternate atom carries its symbol, dimension and definition. On read the dimension must match the definition
+  and a registered symbol must have the identical definition; it resolves to the registered atom. The built-in
+  alternate units are registered from the start (DR-23), so a fresh JVM checks a catalog atom such as `Hz` without
+  touching `SI` first. A symbol still unregistered (an atom of a user file that is
+  not loaded) gives an equal, unregistered atom, which is written again without its definition; atoms without a
+  definition match on symbol and dimension only. Reading never registers (untrusted data must not bind symbols or
+  grow the registry).
+- A quantity is its kind (`double` or decimal, typed or untyped), standard type (an allow-list of the 33 interfaces
+  and `Untyped`, never `Class.forName`), unit, `Scale`, value (raw bits, or unscaled bytes and scale) and
+  `MathContext`. A typed read resolves the provider first, creates through
+  `Providers.quantityFactory(type)` and restores the exact value, scale and context; a user
+  subclass reads back as the provider's class. A scale beyond 100000, a precision or value of more than 50000 digits, a unit of another dimension, an
+  unknown type or null fields are `InvalidObjectException`s.
+- The JDK allocates stream arrays and strings before the proxies run, so untrusted streams need an
+  `ObjectInputFilter` (SECURITY.md). Systems, formats, services and converter caches are not serializable. The form is
+  pinned by golden files and is not promised stable before 1.0.
+
+## 7. Testing and conformance
 
 - `unit-tck` 2.2 against our provider (N1): module `uom-tck`, 113 of 113 tests pass, 0 skipped
   (`mvn -q -B clean verify`). Own contract tests from the Javadoc: `QuantityContractTest`
-  (`uom`) and the `contract` package of `uom-jsr`.
+  and the `contract` package of `uom-jsr`. `ParityTest` and `FormatParityTest` check that both APIs give the same
+  results, texts and errors.
 - Parsed units equal generated constants; catalog round trip for every unit (N6).
 - Generator golden tests: sample inputs compile, behave, and report errors with file and line.
 - CI drift check (`.github/workflows/ci.yml`, job `generated`): regenerate and fail on a non-empty `git diff` or an
@@ -883,35 +595,524 @@ statC:statcoulomb    1|2997924580 C           # exact fraction
 - Serialization round trip (every catalog unit; 33 types x {double, decimal} x {ABSOLUTE, RELATIVE}; golden files);
   module-path and class-path runs, including fresh-JVM reads. The CI workflow runs `mvn -B verify` on JDK 17, 21 and 25, and
   `scripts/verify-release.sh` checks a consumer project on the class path, the module path and in a `jlink` image.
-- **Serialization (F12, D1).** Serialization proxies for `Factor`, `UomDimension`, `UnitAtom`, the
-  converters, `UomUnit` and the quantity base classes. Each class returns its proxy from `writeReplace` and throws
-  `InvalidObjectException("proxy required")` from `readObject`; each proxy (`serialVersionUID = 1L`) rebuilds the object
-  through the public factories in `readResolve`, so every invariant is re-checked and any violation is an
-  `InvalidObjectException`. Proxies write values unshared with bounded lengths (at most 1000 atoms or conversion
-  steps, texts of at most 10000 characters, `NotSerializableException` on write), so the bytes depend on values only.
-  Dimension exponents have no range check: dimension arithmetic uses exact `int` operations and throws on overflow.
-  - A unit is its atoms and exponents, converter factor and offset (with the conversion steps), symbol and name; the
-    caches (converters, the units of products and quotients, the inverse) are transient. A multi-step converter is checked against its steps when they fold exactly, else by
-    a 60-digit decimal fold within 1e-40. Steps that cannot be checked (a part over 4096 bits, or no decimal value)
-    are dropped: the converter reads as one step, so its steps never contradict what it converts.
-  - An alternate atom carries its symbol, dimension and definition. On read the dimension must match the definition
-    and a registered symbol must have the identical definition; it resolves to the registered atom. The built-in
-    alternate units are registered from the start (DR-23), so a fresh JVM checks a catalog atom such as `Hz` without
-    touching `SI` first. A symbol still unregistered (an atom of a user file that is
-    not loaded) gives an equal, unregistered atom, which is written again without its definition; atoms without a
-    definition match on symbol and dimension only. Reading never registers (untrusted data must not bind symbols or
-    grow the registry).
-  - A quantity is its kind (`double` or decimal, typed or untyped), standard type (an allow-list of the 33 interfaces
-    and `Untyped`, never `Class.forName`), unit, `Scale`, value (raw bits, or unscaled bytes and scale) and
-    `MathContext`. A typed read resolves the provider first, creates through
-    `Providers.quantityFactory(type)` and restores the exact value, scale and context; a user
-    subclass reads back as the provider's class. A scale beyond 100000, a precision or value of more than 50000 digits, a unit of another dimension, an
-    unknown type or null fields are `InvalidObjectException`s.
-  - The JDK allocates stream arrays and strings before the proxies run, so untrusted streams need an
-    `ObjectInputFilter` (README). Systems, formats, services and converter caches are not serializable. The form is
-    pinned by golden files and is not promised stable before 1.0.
 
-## 7. Open items
+## 8. Public API and versioning
 
-Open work, with its options, is in [TODO.md](TODO.md); the decisions taken so far, with when to revisit them, are the records of
-section 1. The repository rename and the first release are the owner's steps (TODO.md, "Release readiness").
+uom follows [semantic versioning](https://semver.org/) from 1.0.0. Before 1.0 (the `0.x` versions) any release may
+change the API. From 1.0, a minor release adds API without breaking it and a major release may break it.
+
+### 8.1 What is API
+
+The public API consists of the exported packages of the published modules:
+
+| Module | Exported packages |
+|---|---|
+| `org.tinygears.uom.engine` (artifact `uom-engine`) | `org.tinygears.uom.engine`, `org.tinygears.uom.engine.parse` |
+| `org.tinygears.uom` (artifact `uom`) | `org.tinygears.uom`, `org.tinygears.uom.quantity`, `org.tinygears.uom.systems` |
+| `org.tinygears.uom.jsr` (artifact `uom-jsr`) | `org.tinygears.uom.jsr`, `org.tinygears.uom.jsr.quantity`, `org.tinygears.uom.jsr.systems` |
+
+Within them, these are stable:
+
+- the public and protected members (constructors, methods, fields, nested types) of the public types in the exported
+  packages, and the module directives (`requires transitive`, `exports`, `provides`);
+- the names of the generated constants of the catalogs (`SI.METRE`, `USCustomary.FOOT`, and so on): a constant is
+  not renamed or removed in a minor release;
+- the syntax of `.units` files as described in [CUSTOM-UNITS.md](CUSTOM-UNITS.md): a file that loads in one minor
+  release loads with the same meaning in the later ones of the same major version;
+- the serialized form of units and quantities, from 1.0: a stream written by 1.x reads in every later 1.y. Before 1.0
+  the serialized form may change in any release.
+
+Not API:
+
+- `org.tinygears.uom.engine.internal`, `.arithmetic` and `.format`, exported to `org.tinygears.uom` and
+  `org.tinygears.uom.jsr` only, and `org.tinygears.uom.internal`, exported to `org.tinygears.uom.jsr` only: their
+  public classes are public only for the other modules of uom and may change in any release;
+- `org.tinygears.uom.jsr.spi`: not exported; the hooks that the provider implements;
+- the generator (`uom-codegen`) and the unpublished modules `uom-tck` and `uom-examples`; test helpers;
+- the text of units outside the catalogs, such as the formula the format writes for an unnamed unit (`1|1000·m/s`).
+
+An element to be removed is first deprecated (`@Deprecated` with a `@deprecated` tag naming the replacement) for at
+least one minor release, and is removed only in the next major release.
+
+### 8.2 The API pin
+
+`docs/api/public-api.txt` lists the API: one sorted line per module directive, public type and public or protected
+member of the exported packages, with full generic signatures, plus `hidden` lines for the public types of the
+packages not exported or exported only to other modules of uom. `ApiSurfaceTest` (in `uom-jsr`) reads the module
+descriptors and the class files of the three modules and fails when the API differs from the file, listing the added
+and removed lines; it also checks that `org.tinygears.uom.jsr.spi` is not exported, that the helper packages are
+exported to the modules of uom only, that neither the engine nor `org.tinygears.uom` requires `java.measure`, and that
+these are the only packages with public types outside the exports.
+
+To change the API deliberately, change the code, rewrite the file and review its diff with the change:
+
+```
+mvn -B verify -Duom.writeApi
+git diff docs/api/public-api.txt
+```
+
+A removed or changed line is a breaking change: after 1.0 it needs a major release, or a deprecation first.
+
+The javadoc of the three published modules builds with `doclint` on all groups and no warnings; the `release` profile
+fails on a warning, and `scripts/check-javadoc.sh` counts the warnings and fails on any.
+
+## 9. Decisions
+
+| Topic | Decision |
+|-------|----------|
+| APIs | A native API (`uom`) and an own JSR-385 implementation (`uom-jsr`, unit-api 2.2) on one engine; no Indriya dependency (F1, F2, DR-21). |
+| Typed quantities | Generated typed quantities in both APIs, `double` and `BigDecimal` (F3 to F5); typed products in `uom`. |
+| Code generation | An internal generator reads data files and writes plain Java sources, which are committed. CI fails if regenerating produces a diff. No annotation processor, no proxies. |
+| Catalogs | Text data files are the single source of truth (F15). They generate typed catalogs; the same parser loads user files at run time (F17, section 5). |
+| User extension | Users load their own `.units` files at run time (`SystemOfUnits.load`, `UomSystemOfUnits.load`; F18); a file sees only what it includes (DR-16). User-defined quantity types are out of scope. |
+| Precision | Mixing `double` and `BigDecimal` gives `BigDecimal`, the `double` read as its shortest decimal; symmetric (F23, DR-14). |
+| Irrational factors | Pi and roots are enclosed by directed rounding; decimal results are rounded correctly (DR-15). |
+| Equality | Strict `equals` and `hashCode`; standard `isEquivalentTo` (exact for decimals, `1e-12` relative with a `double`, DR-18); `Comparable` by system-unit value, not consistent with `equals` (F20 to F22). |
+| Java baseline | Java 17; releases built with JDK 21 (DR-11). |
+| Information units | An `Information` catalog with bit and byte as untyped alternate atoms, metric and binary prefixes (DR-12). |
+| Systems of units | Catalogs and preferred units over the SI dimensions; own base units and dimension models belong in a separate library (DR-13). |
+
+### 9.1 Decision records
+
+Each record gives the decision, why, what was rejected and when to revisit it, with the code and documents involved. The
+behaviour for users is in the linked documents. The full discussion and probe results behind these records are in the last
+`docs/TODO.md` that still held them: `git show 5d734d3:docs/TODO.md` (its items 1 to 5, 12, 19 and 20).
+
+**DR-01 Offset arithmetic and `Scale` (F24).**
+- *Decision.* `ABSOLUTE` operands follow the literal `Quantity` Javadoc rule: operands to the system unit, combine, back to
+  the left unit (`2 °C + 1 °C` is 276.15 °C). A `RELATIVE` quantity is a difference and takes no offset: `to` and `toSystem`
+  convert it by the factor, `multiply(Number)` and `divide(Number)` scale it, `add` and `subtract` take the right operand as
+  a delta if either operand is `RELATIVE` (result `RELATIVE` only if both are), `compareTo` and `isEquivalentTo` between two
+  `RELATIVE` quantities compare differences.
+- *Why.* The Javadoc rule is the only specification for points (its own example, 274.15, contradicts it). The TCK tests
+  neither `Scale` nor offsets. Indriya 2.2 agrees for `ABSOLUTE` and for the sane `RELATIVE` cases (probed); applying an
+  offset to a difference is plainly wrong (a 5 K rise was -268.15 °C).
+- *Rejected.* Literal rule everywhere (differences get offsets). Strict model, where a point minus a point is `RELATIVE` and
+  a sum of points is refused, and the hybrid: both differ from the Javadoc and from Indriya.
+- *Revisit if.* Users expect point minus point to be a difference (add a helper, or adopt the hybrid); Indriya or the standard
+  changes; `double` rounding through the offset matters (`20 °C - 0 °C` is -253.14999999999998; `BigDecimal` is exact).
+  Code: `AbstractDoubleQuantity` and `AbstractDecimalQuantity` (`to`, `combine`, `scalar`, products) over the engine's
+  `DoubleArithmetic`, `DecimalArithmetic` and `Deltas`.
+- *See.* [NATIVE.md](NATIVE.md), "Offset units"; `RelativeScaleTest`, `QuantityContractTest`.
+
+**DR-02 `asType` goes by dimension (F21).**
+- *Decision.* `Unit.asType` and `Quantity.asType` throw only if the dimension differs. Alternate units count by dimension:
+  `1/s`, `Hz` and `Bq` are units of `Frequency` and of `Radioactivity`, `rad·m` of `Length`, `Hz·s` of `Dimensionless`.
+  `Unit.equals` stays structural, so `Hz`, `Bq` and `1/s` are three units, equivalent to one another.
+- *Why.* Both Javadocs say `ClassCastException` only for a different dimension, and the `Unit` Javadoc's example is
+  `ONE.alternate("rad").asType(Angle.class)`. Indriya 2.2 accepts every such case, and the typed factories already accepted
+  `Bq` as a `Frequency` unit. The old structural rule refused arc length (an angle times a radius).
+- *Rejected.* The structural rule (stricter than the standard); "accept if either side has no alternate atom" (an invented
+  rule that still refuses `rad·m`).
+- *Revisit if.* Type safety between `Hz` and `Bq` is wanted: restrict `asType` for alternate atoms, at the price of
+  deviating from the Javadoc and Indriya. The explicit assignments (`@preferred Type unit`, `[Type]`) stay structural
+  (DR-20). Code: `UomUnit.asType`.
+- *See.* `AsTypeDimensionTest`, `UomUnitAsTypeTest`.
+
+**DR-03 Offset units in products take part by their factor.**
+- *Decision.* An offset unit takes part in `multiply(Unit)`, `divide(Unit)`, `pow`, `root`, `inverse` and in formulas by its
+  factor only: `°C/m` is `K/m`, `J/(kg·°C)` parses. In a quantity product a `RELATIVE` operand counts by its factor, an
+  `ABSOLUTE` one is a point and goes through the offset (20 °C over 2 m is 146.575 K/m, a 20 °C rise over 2 m is 10 K/m).
+- *Why.* The `Unit` Javadoc says the interface supports products of offset units (°C per metre is its example). Such units
+  measure differences. Indriya 2.2 creates them but cannot convert them.
+- *Rejected.* Refusing them (the old behaviour; `°C/m` was unusable). An Indriya-style non-convertible unit (needs a new
+  unit concept, little value).
+- *Revisit if.* The silent drop of the offset causes bugs, for instance a `°C/m` unit used for a point-valued product: throw
+  or warn instead. Code: `UomUnit.combine`, `pow`, `root`.
+- *See.* [NATIVE.md](NATIVE.md), "Offset units"; `OffsetUnitProductsTest`.
+
+**DR-04 `toSystem(SystemOfUnits)`.**
+- *Decision.* The typed interfaces have `to(Unit)` and `toSystem(SystemOfUnits)`.
+- *Why.* One name for both made a bare `to(null)` ambiguous and could clash with a later `to(...)` of unit-api.
+- *Rejected.* Keeping the overload.
+- *Revisit if.* unit-api adds a method named `toSystem`. Code: the generated typed interfaces and the base classes.
+
+**DR-05 The provider lookup does not depend on the current provider.**
+- *Decision.* `asType`, unit `asType` and deserialization take the quantity factories from the current provider if it is ours,
+  else from ours among `ServiceProvider.available()` (found once and kept), else from the current provider. The provider is
+  named `TinyGears`, keeps priority 100 (Indriya 2.2 has 10) and implements the hook `spi.QuantityFactories`.
+- *Why.* They used `ServiceProvider.current()`, so any other current provider (`setCurrent`, a higher priority) broke them
+  with `ClassCastException` and `InvalidObjectException` (probed with Indriya).
+- *Rejected.* A `ServiceLoader` SPI of the core (more wiring, same result); documentation only; a higher priority (hijacks
+  `current()` from users who chose Indriya).
+- *Revisit if.* The core should not use the JSR-385 provider machinery at all (own SPI); the priority policy changes; the
+  kept result (also "none found" for printing) is too sticky across class loaders. Quantities of two implementations do
+  not mix, by design (D8). Code: `spi.Providers`, `UomServiceProvider`.
+- *See.* [JSR.md](JSR.md), "The service provider"; `ProvidersTest`, `ProviderCoexistenceTest`.
+
+**DR-06 Prefixes are applied and named by systems, not by units.**
+- *Decision.* `Unit.prefix` only scales and returns an unnamed unit. The parser (`@prefixed`), the generated catalogs and
+  `UomUnitFormat.resolve` name prefixed units. `UomUnitFormat.format` writes a metric prefix on a prefixable unit (`mHz`,
+  `pW`) and a power of ten from 10 up times a unit (`1000·min`); other factors stay in system units (`864·s`). The parser
+  rejects `@prefixed` on a prefixed unit; `label` rejects a label that reads as another unit, also as a prefixed form.
+- *Why.* The unit cannot know which units take a prefix or what else a symbol means; the invented symbols were wrong
+  (`km²`, `kmin`, `mkg`, `mmm`, and collisions such as `cd` and `dam`). No production code used them. The TCK tests no prefixes.
+- *Rejected.* Conservative auto-naming (still `kmin`, `mmm`, `cd`, `dam`); keeping it as it was.
+- *Left as documented.* Prefixed ohm names stay `kiloohm` and `megaohm` (descriptive, never parsed; the contraction `kilohm`
+  was not verified against the SI Brochure). In a user file `@prefixed u k` checks only `ku`, and `UomUnitFormat.with` does not
+  detect a prefixed reading that equals an existing exact symbol: the exact symbol wins (`ft` is the foot), and detecting it
+  would reject legitimate systems.
+- *Revisit if.* A real collision bites a user (detect it in `with` and in the loader); `kilohm` is wanted (a small rule in the
+  parser's naming).
+- *See.* [CUSTOM-UNITS.md](CUSTOM-UNITS.md); `UnnamedUnitTextTest`, `DefinitionParserTest`, `UnitFormatTest`.
+
+**DR-07 Unit identity and printing.**
+- *Decision.* `getSystemUnit()` returns a named system unit itself (`SI.NEWTON` keeps `N`), for another named unit the
+  system unit of its quantity type (DR-25), else the unscaled unit of the same atoms with the label of the atoms as symbol (a symbol built by `multiply`, such as `m·m`, is no name: the product of two
+  lengths is `m^2`). An unnamed unit prints as the standard format writes it (`mHz`, `km`, `1000·min`) through the
+  `spi.UnitTexts` hook of the provider, else as its definition (`1000·m`, `K + 5`); a re-entrancy guard keeps `toString` from
+  recursing. A dimensionless quantity prints as its number alone (`5.0`), which parses back; a unit of dimension one with
+  a symbol keeps it (`2.0 rad`). `compareTo` on `-0.0` follows `Double.compare` (documented). A system that gives a unit of
+  another type with the same dimension is accepted by `toSystem` (DR-02).
+- *Why.* The old system label for an unnamed unit lied (`METRE.multiply(1000)` printed `m`); the unit-api Javadoc of
+  `getSystemUnit` does not require `this`, but keeping symbol and name avoids a copy. Indriya prints the bare number too.
+- *Rejected.* Printing a unit's system label; always the definition (`1|1000·Hz` for a millihertz); `5.0 1` for dimensionless.
+- *Revisit if.* `toString` calling the provider and a format is considered too implicit (print only the definition, no hook
+  and no guard); users prefer `5.0 1`. Code: `UomUnit.toString`, `getSystemUnit`, `UomUnitFormat`, `UomQuantityFormat`.
+- *See.* [JSR.md](JSR.md), "The service provider" (how units print); `DimensionlessTextTest`, `SystemUnitNamesTest`.
+
+**DR-08 Superscript exponents.**
+- *Decision.* A formula reads superscript digits (`⁰¹²³⁴⁵⁶⁷⁸⁹`, `⁻`) glued to a symbol, a `pi` or a `)` as an integer exponent
+  (`m/s²`, `s⁻¹`, `kg·m²/s³`, `(m/s)²`); a token that is a symbol as a whole wins (catalog `m²`, `cm²`), so `km²` is
+  `(km)^2`. Output stays ASCII (`m/s^2`) by default; `UomUnitFormat.withSuperscripts(true)` returns a format that writes
+  superscripts, and a `UomQuantityFormat` over it does too. `toString` and the standard provider format stay ASCII. An
+  exponent right after a symbol that already ends in a superscript keeps its caret (`m²^2`).
+- *Why.* Only the catalog symbols `m²`, `m³`, `cm²`, `in²`... parsed, as exact symbols, so `m²` worked and `m/s²` did not. The
+  SI reading of `km²` is `(km)^2`. Writing is a separate choice: switching the default would change every `m^2`, `s^-1` and
+  `kg·m^2/s^3` in outputs, tests and docs, and depends on a Unicode console.
+- *Rejected.* Unicode as the default output; reading only `²` and `³`; making a superscript run part of a symbol only when
+  the symbol exists (that is the exact-symbol rule, kept).
+- *Revisit if.* Users want Unicode by default (flip the default, regenerate the pinned strings), or in `toString`, or through
+  the JSR-385 `FormatService` by name (not done: the format service ignores the variant). `m²²` stays `m^22`: a
+  superscript run is one exponent. Code: `FormulaEvaluator` (`atom`, `term`), `UomUnitFormat.withSuperscripts`.
+- *See.* [CUSTOM-UNITS.md](CUSTOM-UNITS.md) (formulas); `SuperscriptTest`, `FormulaEvaluatorTest`.
+
+**DR-09 System units as constants of `SI`.**
+- *Decision.* The system unit of every quantity type is a public constant of `SI`, the same instance as the factory's
+  (`SI.WATT == PowerFactory.SYSTEM_UNIT`). The three that no `si.units` line can define, because their symbol has a `/` or is
+  `1`, are generated from `quantity-types.txt` as `SI.METRE_PER_SECOND`, `SI.METRE_PER_SECOND_SQUARED` and `SI.ONE`; they are
+  constants of the class, not units of the system (`SI.UNITS` keeps its 128). Spelling is `METRE`, as everywhere in the catalog.
+- *Why.* 30 of the 33 types already had one, but `Speed`, `Acceleration` and `Dimensionless` had none, so `SI.METRE_PER_SECOND`
+  did not exist. The data is single-sourced (`si.units` and `quantity-types.txt`); only the generated Java expression of a
+  unit sits in the factory, and `SI` refers to it.
+- *Rejected.* Making the factories refer to `SI` (the reverse): `SI.PREFERRED` is built from the factory units, so a factory
+  initialised first would read a null `SI` field, and `quantity` would depend on `systems`, which depends on `quantity`
+  already. American spellings (`METER`): a second spelling of about 130 constants. Putting the three into `SI.UNITS`: a symbol
+  with `/` cannot be looked up as a symbol.
+- *Revisit if.* The factories should own nothing: make `SI.PREFERRED` and the other catalogs use `SI` constants, then point the
+  factories at `SI`, and resolve the initialisation order with a test that touches each class first. Code: `CatalogEmitter`
+  (the extras), `Generate`.
+- *See.* `SiSystemUnitsTest`, `SharedUnitsTest`.
+
+**DR-10 `X.from(Quantity<?>)` narrows to the typed interface.**
+- *Decision.* Each of the 33 typed interfaces has `static X from(Quantity<?> quantity)`. It narrows as `asType` does (by
+  dimension, DR-02), returns a quantity of this implementation as it is (`Speed.from(speed)` is `speed`), keeps value, unit,
+  scale and precision, throws `ClassCastException` for another dimension or for a quantity of another implementation, and
+  `NullPointerException` for null. The logic is one package-private helper, `QuantityTypes.narrow`; the 33 methods are
+  one-liners.
+- *Why.* Our typed interface cannot be the type token of `asType` (`Speed` is not a `Quantity<Speed>`), so callers wrote
+  `(Speed) q.asType(javax.measure.quantity.Speed.class)`. In the documents 4 of 6 such uses narrow the result of
+  `UomQuantityFormat.parse` and 2 a product: expressions whose static type is the standard `Quantity<?>`.
+- *Rejected.* An instance method with an `asType`-like name on our quantities: it only works where the expression's static
+  type is ours, so it needs a new public `UomQuantity` interface and narrowed return types for `multiply`, `divide` and
+  `UomQuantityFormat.parse`, and it does not help what comes back through standard APIs. Typed products
+  (`Length.divide(Time)` returns `Speed`): needs a table of relations, out of scope.
+- *Revisit if.* Fluent chaining is wanted: add an instance method on a new `UomQuantity` additively; `from` blocks nothing.
+  Done in DR-19 (`as(Class)`); `from` stays for quantities typed as the standard `Quantity<?>`.
+  Typed products, if relations between types are declared. Code: `SourceEmitter` (interface template and registry).
+- *See.* [JSR.md](JSR.md), "Typed quantities and unit declarations"; `FromTest`.
+
+**DR-11 Java 17 is the baseline.**
+- *Decision.* `maven.compiler.release` is 17 and the enforcer requires JDK 17 or later; CI builds on JDK 17, 21 and 25,
+  and releases are still built and checked with JDK 21 (RELEASING step 5).
+- *Why.* Much of the JSR-385 audience is on older JDKs (Indriya targets Java 8). Going from 21 to 17 cost three APIs:
+  `Math.divideExact` (18) became `Math.toIntExact((long) a / n)`, which keeps the `MIN_VALUE / -1` overflow that
+  `UomDimensionTest.rootEdgeCases` pins; `BigDecimal.TWO` (19) became `BigDecimal.valueOf(2)`;
+  `InvalidObjectException(String, Throwable)` (19) became `initCause`. Tests: two `BigDecimal.TWO` and one
+  `List.reversed()` (21).
+- *Rejected.* Java 11: about 70 syntax sites in main (16 records, 6 of them public API types in `core.parse`, pattern
+  `instanceof`, text blocks, switch rules, one `sealed`) and more in tests. Java 8: also a multi-release jar for
+  `module-info`, about 70 uses of Java 9 to 11 APIs and a changed generator output. Measured estimates in
+  `git show ba4f92f:docs/TODO.md`, item 9.
+- *Revisit if.* Users ask for 11 or 8. The javadoc tool of JDK 17 warns "no comment" on the serialized form of the
+  `Serializable` records `UomDimension` and `UnitAtom`, which fails the `release` profile, so a release on JDK 17 needs
+  that solved first.
+- *See.* `pom.xml`, `.github/workflows/ci.yml`, section 1.4.
+
+**DR-12 Information units are a catalog of their own, untyped, with binary prefixes.**
+- *Decision.* `data/information.units` generates `Information` (in `UnitSystems.all()` and so in the standard format):
+  `bit` is a dimensionless alternate atom (`bit ~`, as `rad` is in SI) and `B` is `8 bit`, both `UomUnit<?>`. `@prefixed`
+  accepts the binary prefix symbols (`Ki` to `Yi`) next to the metric ones; a line with a metric prefix makes the unit
+  take metric prefixes at run time, a line with a binary prefix binary ones (`UomSystemOfUnits.isBinaryPrefixable`). A
+  unit that takes binary prefixes takes only the metric prefixes from kilo up. `kB` is 1000 B and `KiB` 1024 B (IEC
+  80000-13).
+- *Why.* Users expect `MiB` to parse, and `Unit.prefix(BinaryPrefix.KIBI)` already worked without a way to read or
+  write the result. The bit and the byte are not SI units, so they do not belong in `SI`. JSR-385 has no information
+  quantity type, and the 33 generated types are a closed set (section 1.3). The kilo rule keeps `dB` (decibel to
+  most readers) and `mB` from parsing as fractions of a byte, which nobody means.
+- *Rejected.* Adding the units to `SI`: lists non-SI units and changes its pinned size. An own `Information` quantity
+  type: extends the closed set and has no `javax.measure.quantity` counterpart for `asType`. Making binary prefixes
+  apply to every prefixable unit: IEC 80000-13 reserves them for information (`Kim` would parse). Restricting the run-time
+  prefixes to the listed ones: changes the rule for every other unit (`Mm` and `dam` parse today).
+- *Revisit if.* Users ask for typed information quantities or a data rate type (`bit/s` works untyped). The bit is
+  dimensionless like the radian, so a quantity in bytes converts to `ONE` (1 B is 8), as 1 rad converts to 1.
+- *See.* [UNITS.md](UNITS.md), [CUSTOM-UNITS.md](CUSTOM-UNITS.md) (`@prefixed`), `UnitFormatSystemsTest`.
+
+**DR-13 A system is a catalog over the SI dimensions; other dimension models belong in a separate library.**
+- *Decision.* A system of units is a catalog plus a preferred unit per quantity type; every unit is an exact factor of
+  SI units, `getSystemUnit()` and `Dimension` are SI-based, and a system has no base units of its own (`cm`, `g` and `s`
+  are members of `CGS`, not its base). Values convert between all systems, electromagnetic CGS units included (1 C is
+  2.99792458E9 Fr), but the formulas of ESU, EMU and Gaussian units do not hold. [NATIVE.md](NATIVE.md) says so
+  ("Systems of units").
+- *Why.* The JSR-385 API assumes a single dimension model: `Dimension.getBaseDimensions` and `Unit.getBaseUnits`
+  have integer exponents, `isCompatible` is global, and the quantity types (`MagneticFluxDensity`, ...) are fixed SI
+  dimensions. A system-dependent model would break unit equality (F21) and the typing of `asType`.
+- *Rejected.* A per-system base-unit view in uom (`kg·m/s` as `g·cm/s` in CGS; option B of the former TODO item 15):
+  feasible without core changes, since the base units of CGS or US customary are exact scalings of SI base units, but
+  it is presentation that JSR-385 does not ask for, and it belongs with the model below. Distinct dimension systems for
+  ESU, EMU and Gaussian (option C): needs another dimension model, see the follow-up.
+- *Follow-up: a separate library on `uom-jsr`.* Converting the way GNU units does with `--units gauss` (probed with GNU
+  Units 2.27): it redefines its primitive units per system (`sqrt_cm` and `sqrt_g` as base units, `m` as `100 sqrt_cm^2`,
+  the ampere as `10 c statA` in Gaussian units, with Coulomb's constant 1 and `epsilon0`, `mu0` rescaled) and keeps every
+  other definition, so every unit is expressed in the system's base units (`coulomb` is
+  `2.9979246e+09 sqrt_cm^3 sqrt_g / s`) and conformability depends on the system:
+
+  | | SI | `--units gauss` | `--units emu` | `--units esu` |
+  |---|---|---|---|---|
+  | `oersted` to `gauss` (H and B) | not conformable | 1 | 1 | not conformable |
+  | `statvolt/cm` to `gauss` (E and B) | not conformable | 1 | not conformable | not conformable |
+  | `statfarad` to `cm` | not conformable | 1 | not conformable | 1 |
+  | `coulomb` to `statcoulomb` | 2.9979246e+09 | 2.9979246e+09 | 2.9979246e+09 | 2.9979246e+09 |
+
+  Such a library projects a uom unit into a system with what the pinned `uom-jsr` API already offers: `UomUnit.atoms()`
+  (SI and alternate atoms with exponents), `toSystemConverter().factor()` and `offset()` (an exact `Factor`, with
+  rationals, powers of pi and roots), `getDimension()`, and `DefinitionParser` for system files in the same syntax. Per
+  system it substitutes each SI base atom by a factor times its own base atoms (`m` is `100 cm`, `A` is `10 c statA` with
+  c exact, so the factors stay exact), with a dimension model of its own (half-integer exponents, or `sqrt_cm`-style
+  atoms to keep integer exponents) and a system-scoped conversion that returns untyped quantities, since B and H, say,
+  are one quantity in Gaussian units and two JSR-385 types. To keep in mind: the `.units` data files are not in the uom
+  jars (the library ships its own or uses the catalog constants); an offset unit projects by its factor only, as in unit
+  products; the `uom-jsr` methods above become its contract (pinned by `ApiSurfaceTest`, semantic versioning from 1.0).
+  The design of the original uom library had the same aim: its parser took a selectable reference system file
+  (`si.system`, "for now, only SI is supported").
+- *Revisit if.* Users of uom need system base units for JSR-385 types, or the separate library needs more of
+  `uom-jsr` than the methods above.
+- *See.* [NATIVE.md](NATIVE.md), "Systems of units"; sections 1.3 and 1.6.
+
+**DR-14 Mixing precisions: the decimal wins.**
+- *Decision.* An operation on a `double` and a `BigDecimal` quantity (add, subtract, multiply, divide, `compareTo`) is
+  decimal: the `double` value is read as its shortest decimal (`BigDecimal.valueOf`), the result is a `BigDecimal`
+  quantity in the decimal operand's context, in either operand order. `isEquivalentTo` against a `double` operand keeps
+  the `double` tolerance. A NaN or infinite `double` throws `ArithmeticException` in that arithmetic; `compareTo` keeps the
+  `Double.compare` order for it. Scalar arguments keep adopting the receiver's precision (F23).
+- *Why.* The former rule, the lower precision wins, was right about accuracy: a `double` operand carries 15 to 17
+  digits, and doing the arithmetic in `double` adds about one more rounding error of that size, so promoting does not
+  make a result more accurate. But `BigDecimal` is chosen for exact decimal arithmetic, not for more digits, and under
+  that rule one `double` quantity made a result binary without a signal (decimal `0.1 m` plus `0.2 m` was
+  `0.30000000000000004 m`), which then spread through every later step. The `double` operand is usually the decimal the
+  user wrote: `Length.of(2, m)` is stored as a `double` (F5). The former rule also contradicted itself: a `double`
+  scalar was already read as its shortest decimal (`multiply(0.2)` on a decimal stayed decimal), and "lower" ranked
+  `double` below `DECIMAL32` although it has more digits. Equivalence is about the accuracy of the inputs, so it keeps
+  the coarser tolerance: with the decimal one (10^-33 at `DECIMAL128`), decimal `0.3` would no longer be equivalent to
+  `double` `0.1 + 0.2`.
+- *Rejected.* The lower precision wins (float contagion, as in Common Lisp and Python's `Fraction + float`): silent loss
+  of decimal exactness. Refusing to mix (Python's `Decimal + float` is a `TypeError`, C# has no implicit `decimal` and
+  `double` arithmetic): generic JSR-385 code that mixes quantities from different sources would fail at run time, and
+  so would every `Length.of(2, m)` with a decimal. Indriya promotes even `double` with `double` to `BigDecimal` (probed
+  with 2.2); uom keeps `double` arithmetic `double`.
+- *Revisit if.* Users need to detect mixing: a strict mode could throw instead, without changing the default.
+- *See.* F23; `AbstractDoubleQuantityMixedTest`, `AbstractDecimalQuantityArithmeticTest`; the
+  `mixedPrecision` example.
+
+**DR-15 Irrational factors are evaluated by enclosure and rounded correctly.**
+- *Decision.* A factor with pi or a root is enclosed in an interval by directed rounding; a decimal result rounds both
+  ends of the enclosure of the whole expression and doubles the digits until they agree (Ziv's strategy), starting at
+  the context's digits plus 10. A cap of 1000 digits plus twice the digits of the context and the operands stops
+  irrational terms that cancel exactly: then the lower end rounds and `compareTo` returns 0.
+- *Why.* The former fixed guard digits rounded wrongly at near-ties (pi to 761 digits, sqrt(2) to 2706 under
+  `HALF_UP`), lost cancellations deeper than about 25 digits beyond the operands, and grew with the operands' digits
+  (comparing a two-million-digit value with one pi-metre computed two million digits of pi). An enclosure proves the
+  rounding and needs only the digits the decision needs.
+- *Rejected.* More fixed guard digits: cheaper to write, never proven, and still sized by the operands. Exact algebraic
+  arithmetic over pi and roots: a different number system for a rare case.
+- *Revisit if.* A unit's factor and offset are both irrational in practice, so the cap is reached.
+- *See.* Section 4, "Irrational factors"; `IrrationalsTest`, `AbstractDecimalQuantityArithmeticTest`,
+  `ConvertersDecimalTest`.
+
+**DR-16 A definition file sees only what it includes.**
+- *Decision.* A file's formulas, `@preferred`, `@prefixed` and `@member` lines resolve the symbols the file defines,
+  those of the files it includes or extends (transitively) and the built-in symbols; a unit of another file, even one
+  the root defined earlier, is `unknown unit`. Every file's `@system`, `@extends` and `@member` lines are recorded and
+  checked, not only the root's, so `UomSystemOfUnits.load` builds the root and its parents from one parse.
+- *Why.* An extended parent was parsed a second time on its own to build its system, which made a chain of n files
+  cost n^2 / 2 file parses (500 files of 40 units: over 10 s). One parse is exact only if a parent cannot see the file that extends
+  it, so visibility must follow the includes. The rule is the one the generator already applies (it parses every data
+  file on its own), and it holds for `@include` and `@extends` alike.
+- *Rejected.* Visibility in parse order (an included file saw every unit parsed before it): files then depended on
+  where they were included, and a parent could not be built from the root's parse. Keeping that rule and parsing
+  parents again: quadratic in the depth of `@extends`.
+- *Revisit if.* Users need shared definitions without an `@include` in each file.
+- *See.* docs/CUSTOM-UNITS.md, "Definition lines" and "Directives"; `DefinitionParserTest`, `UserUnitsTest`.
+
+**DR-17 Labels belong to a format instance and never change `toString`.**
+- *Decision.* `UomUnitFormat.label` changes that format only; `with` and `withSuperscripts` copy the labels the format
+  has then, and `standard()` returns a new format. The format service hands out one shared `UomUnitFormat`, so a label
+  set there applies to every user of the service. `toString` of units and quantities ignores all labels. The labels of a
+  format are one immutable snapshot, replaced under a lock, so a reader never sees half an update.
+- *Why.* The unit-api Javadoc calls a label system-wide but defines that as every use of the same format instance,
+  assuming a singleton; the service's shared format is that instance. Labels in a JVM-wide registry would be global
+  mutable state, as the alternate-unit registry is (DR-23): one library's label would change how another parses.
+  Keeping `toString` independent keeps log output and test assertions stable whoever labels what.
+- *Rejected.* JVM-wide labels; `toString` through the service's labelled format, as Indriya prints through
+  `SimpleUnitFormat.getInstance()` (probed with 2.2: after `label(kmh, "kmh")` every `toString` of that unit is `kmh`,
+  and the last label wins).
+- *Revisit if.* Users need one label to apply to every format they create.
+- *See.* `UomUnitFormat` class Javadoc; `UnitFormatTest.labelsBelongToTheirFormatAndNeverChangeToString`.
+
+**DR-18 Decimal `isEquivalentTo` is exact.**
+- *Decision.* Two decimal quantities are equivalent when `compareTo` is 0: the exact system-unit values agree, whatever
+  their contexts. A `double` on either side keeps the relative tolerance `1e-12`.
+- *Why.* The former tolerance `max(|a|, |b|) * 10^(1 - p)`, `p` the lower precision of the contexts, followed the
+  context, which rounds results but says nothing about how precise a value is: at precision 1 every two values of the
+  same sign were equivalent (`1 m` and `100 m`), at precision 2 `1 m` and `1.1 m`. The unit-api Javadoc asks for
+  `that ≡ this`; Indriya 2.2 compares exactly (`compareTo == 0`), pint and UnitsNet compare exactly and offer tolerance
+  as an explicit call. Decimal `compareTo` is exact, through pi and roots too (DR-15), so no conversion noise needs a
+  tolerance; `double` arithmetic does, so it keeps one.
+- *Rejected.* A tolerance of one unit in the last place at the context precision: still context-driven, and `1 m` and
+  `1.9 m` stay equivalent at precision 1. Keeping the old rule with a minimum precision.
+- *Revisit if.* Users compare values rounded on their way (a converted `57.29577951308232087679815481410517°` is not
+  `1 rad`): an explicit tolerance method, such as `isEquivalentTo(that, relativeTolerance)`, would serve them.
+- *See.* `AbstractDecimalQuantityArithmeticTest.decimalEquivalenceIsExactWhateverTheContext`; F20.
+
+**DR-19 `UomQuantity`: one interface for what JSR-385 lacks.**
+- *Decision.* `org.tinygears.uom.jsr.quantity.UomQuantity<Q, R>` extends `Quantity<Q>` and `Comparable<Quantity<Q>>`,
+  narrows the return types of the JSR operations to `R`, and adds `as(Class)`, `isCloseTo(that, relativeTolerance)`,
+  `isCloseTo(that, absoluteTolerance)`, `toSystem`, `toDouble` and `toDecimal`. Both base classes implement it, each
+  generated typed interface is `X extends javax.measure.quantity.X, UomQuantity<javax.measure.quantity.X, X>` (it no
+  longer redeclares the operations), `Untyped` is `UomQuantity<Untyped, Untyped>`, and `multiply(Quantity)`,
+  `divide(Quantity)`, `inverse()` and `UomQuantityFormat.parse` return `UomQuantity<?, ?>`. Each addition's Javadoc
+  says why it exists and how it differs from the JSR method nearest to it.
+- *Why.* The additions lived in 33 generated interfaces and the base classes, with nothing to type a product or a parse
+  result by. A tolerance comparison is asked for once `isEquivalentTo` is exact (DR-18), and `as` removes the casts of
+  `asType`. The narrowed return types keep the JSR signatures: covariant returns, so code written against JSR-385 is
+  unaffected.
+- *Rejected.* Overloading `asType` for our interfaces: `<T extends UomQuantity<?, T>> T asType(Class<T>)` has the
+  erasure of the JSR method and does not compile. `isEquivalentTo(that, tolerance)`: the JSR name promises an
+  equivalence relation, a tolerance is not transitive. A static helper class: no chaining, and nothing to type results.
+- *Revisit if.* More additions are wanted; the interface is not meant to be implemented elsewhere, so methods can be
+  added. The erased return type of an inherited operation is `UomQuantity` (reflection sees `R`, Java callers see the
+  typed interface); redeclare the operations in the typed interfaces if a JVM language or tool needs the erasure.
+- *See.* `UomQuantity` Javadoc; `UomQuantityTest`, `AbstractDecimalQuantityArithmeticTest`, `AbstractDoubleQuantityTest`.
+
+**DR-20 Explicit type assignments stay structural.**
+- *Decision.* `@preferred Type unit` (user files and data files) and `[Type]` (data files) require the unit's system unit
+  to equal the type's, atoms included: `@preferred Frequency Bq`, `@preferred Angle sr` and `[Frequency]` on a unit of
+  becquerels are errors (`unit 'x' is not a unit of Frequency`). `asType` keeps the dimension rule (DR-02).
+- *Why.* A declaration states what a unit is for a type, and the atoms are what tell `Hz` from `Bq` and `rad` from `sr`;
+  every dimensionless unit has the same dimension. By dimension, `toSystem` of a clock rate could give becquerels, and
+  the generator would type a becquerel unit as `Frequency`. `asType` answers another question, whether a quantity can
+  be viewed as a type, which the JSR-385 Javadoc defines by dimension. Inferring a type stays structural in any case.
+- *Rejected.* Accepting any unit of the type's dimension in the declarations, for symmetry with `asType`.
+- *Revisit if.* A real catalog needs to declare an alternate unit of another atom as the preferred unit of a type.
+- *See.* docs/CUSTOM-UNITS.md, `@preferred`; `UserUnitsTest.preferredErrors`, `CatalogBuilderTest`.
+
+**DR-21 A native API next to the JSR-385 implementation.**
+- *Decision.* Split the library: the native API, with its own `Quantity<Q>` and `Unit<Q>` over
+  this library's types, becomes the artifact `uom` (packages `org.tinygears.uom.*`), the JSR-385 implementation moves
+  to `uom-jsr` (`org.tinygears.uom.jsr.*`); both build on `uom-engine` and its quantity arithmetic. The native API keeps
+  the JSR-385 model of offsets, a `Scale` on the quantity. The JSR-385 core and the generated JSR-385 types are one
+  module, `uom-jsr`, which also converts to and from the native API (`Jsr`).
+- *Why.* Inside JSR-385 our types cannot be unit type parameters or type tokens and products cannot be typed (section
+  2.1). The prototype showed both are solved by a native API, that the engine carries the algebra,
+  parser and arithmetic for both (the arithmetic moved without a change of results or speed), and that a conversion
+  between the APIs costs about one arithmetic operation.
+- *Rejected.* Keeping the single JSR-385 implementation (the workarounds stay: `var`, `as`, untyped products). The
+  native API with the JSR-385 side as thin wrappers over it: one extra object per JSR operation, and the native API
+  would have to cover all of JSR-385 before the adapter works. Separate point and difference types (`Temperature`,
+  `TemperatureDifference`) instead of `Scale`: a new design, and the bridge would map a scale to a type.
+- *Revisit if.* Keeping two APIs in step (formats, systems, serialization, documentation) costs more than users of the
+  native API gain; then one of the rejected options.
+- *See.* section 2.1; `NativeQuantityTest`, `ParityTest`, `RelationsParserTest`, `NativeGenerationTest`.
+
+**DR-22 Decimal values and contexts are bounded to 50000 digits.**
+- *Decision.* `MAX_PRECISION` is 50000, half of `MAX_SCALE` (100000), and bounds both the precision of a context and
+  the digits of every decimal value: at creation, after each operation (an exact result in `UNLIMITED` included), in
+  the serial form and in the quantity format, which refuses a longer number before the `BigDecimal` parse.
+- *Why.* At a precision equal to the scale bound, inexact results below 1 passed the scale bound (`0.1 m / 3` at
+  precision 100000 threw `scale out of range`); at half of it they stay valid down to 1e-50000. The `BigDecimal`
+  parse is quadratic in the digits (100000 in 0.1 s, a million in 11 s), so an unbounded number text cost seconds; the
+  digit count is linear and checked first.
+- *Rejected.* Keeping 100000 and documenting the throw. A digit bound at the format only: arithmetic in `UNLIMITED`
+  could still build values the format and the serial form would refuse.
+- *Revisit if.* A use case needs exact values or contexts of more than 50000 digits.
+- *See.* `Precision`, `NumberText`; `AbstractDecimalQuantityTest.digitsAndPrecisionAreBounded`,
+  `DecimalParseTest.digitsBeyondTheBoundAreAParseError`, `NativeFormatTest`, `QuantitySerializationTest`.
+
+**DR-23 One JVM-wide registry of alternate units, with all-or-nothing loads.**
+- *Decision.* Alternate units stay in one JVM-wide registry (`AlternateUnits`). It holds the base atoms and the seven
+  built-in alternate units (`rad`, `sr`, `Hz`, `Bq`, `Gy`, `Sv`, `bit`) from its initialisation; a load of `.units`
+  files (`DefinitionParser.parse`, `UnitSystemLoader.load`) registers its alternates all or nothing; the alternate of
+  an atom's unit under the atom's own symbol is that unit (`rad.alternate("rad")`, as `m.alternate("m")`). A symbol
+  of a successful load stays bound until the JVM restarts.
+- *Why.* JSR-385 `Unit.alternate` must throw for a symbol "already associated to a different unit", which needs a
+  record of the symbols. Before, a failed load left its symbols bound, `rad.alternate("rad")` threw while
+  `m.alternate("m")` did not, and a conflicting `alternate("Hz")` before `SI` loaded broke the `Frequency` factory.
+  The reservation is a fixed list in the engine, which knows no catalog; a test compares it with the `~` lines of
+  `data/`. Loading the catalogs on the first registration instead would initialise catalog classes from inside
+  another catalog's initialisation.
+- *Rejected.* A scoped registry, alternates of a run-time file living in its system with the definition part of an
+  atom's identity: two loads could then define one symbol differently, but `UnitAtom` equality, the serial form and
+  formatting (one symbol, two units) would change, for a need nobody has.
+- *Revisit if.* One JVM has to load conflicting definitions of a symbol (several tenants, reloading edited files).
+- *See.* `AlternateUnitsTest` (engine and `uom-jsr`), `UserUnitsTest.aFailedLoadLeavesNoAlternateUnits`,
+  `QuantityTypesIsolationTest`.
+
+**DR-24 Preferred units taken from SI are not members of a system.**
+- *Decision.* Every system has a preferred unit for all 33 types (its own `@preferred`, else the first extended
+  system's, else SI's), so `toSystem(system)` works for every typed quantity; a unit taken from SI is not a member:
+  `getUnit(String)`/`unit(String)` and `getUnits()`/`units()` do not have it. The Javadoc and the user documents say so.
+- *Why.* JSR-385 defines `getUnits()` as "the units explicitly defined by this system" and `getUnit(Class)` as "the
+  default unit for the specified quantity"; a second listed for US customary is a default, not a definition of that
+  system. Listing the fallback units would add up to 24 SI units (`A`, `mol`, `cd`, ...) to a system's members, and
+  to `docs/UNITS.md` with them.
+- *Rejected.* Fallback units as members. Null for a type without its own or an inherited `@preferred`, as
+  systems-common 2.1's `USCustomary` and `Imperial` do for every type: `Time.toSystem(USCustomary.SYSTEM)` and 155
+  other pairs would throw.
+- *Revisit if.* Users expect `getUnits()` to cover every preferred unit, or a system needs to state that it has no
+  unit for a type.
+- *See.* `SystemsCatalogTest.fallbackPreferredUnitsAreNotMembers`, `NativeFormatTest.fallbackPreferredUnitsAreNotMembers`.
+
+**DR-25 A named unit's system unit is the system unit of its quantity type.**
+- *Decision.* `getSystemUnit()` (`systemUnit()` in `uom`) of a named unit that is not itself a system unit returns the
+  named system unit of the standard quantity type with its atoms: `kPa` gives `Pa`, `kJ` `J`, `psi` `Pa`, `kn` `m/s`. An unnamed unit (`N·m`, `kPa·2`) and a named unit of no standard type (`P`, the poise) keep the label of
+  their atoms (`kg·m^2/s^2`, `kg/(m·s)`). `uom-jsr` finds the type through the `spi.SystemUnits` hook of its provider,
+  `uom` through the unit's type.
+- *Why.* `kPa.getSystemUnit()` printed `kg/(m·s^2)` and a pressure in system units `5000.0 kg/(m·s^2)`; Indriya gives
+  `Pa`. A named unit has a quantity type (the catalogs and loaded files type them by their system unit), and that type
+  has exactly one named system unit; an unnamed product has no such claim, so `N·m` does not become `J`.
+- *Rejected.* Keeping the unit a unit was derived from (an engine field and a serial-form change; the native catalogs
+  build `kPa` from base units, not from `Pa`). A lookup by atoms for every unit: `N·m` would print as `J`.
+- *Revisit if.* Unnamed units should print named system units too, or a quantity type gets two named system units.
+- *See.* `SystemUnitNamesTest`, `UomUnitTest.systemUnitSymbols`, `NativeQuantityTest.namedUnitsTakeTheSystemUnitOfTheirType`;
+  [JSR.md](JSR.md), "System units of prefixed derived units".
+
+**DR-26 The Greek mu and the lowercase litre are read, not written.**
+- *Decision.* The unit format reads the Greek small mu (U+03BC) as the micro sign (U+00B5) and `l` as the litre `L`,
+  plain or with a metric prefix (`μm`, `ml`, `μl`, `dal`), after the exact symbols and the prefixed forms, so `mol` and
+  `Gal` keep their meaning. It writes `µ` and `L`. `℃`, `㎥`, `one`, `%` and `m2` stay refused.
+- *Why.* Indriya writes `μm` and `l`, and both spellings are standard rather than look-alikes: Unicode prefers U+03BC for
+  micro (U+00B5 normalises to it), and the SI Brochure gives both `L` and `l` for the litre. The others are compatibility
+  characters (`℃`, `㎥`), new units (`one`, `%`) or a syntax that clashes with symbols ending in a digit (`m2`).
+- *Rejected.* Exact symbols only (text Indriya wrote does not read back). Normalising every compatibility character.
+- *Revisit if.* Users need `℃`, `%` or another spelling read.
+- *See.* `UnitFormatTest.greekMuAndLowercaseLitreParse`, `UserUnitsTest.builtInSymbolsCannotBeRedefined`;
+  [CUSTOM-UNITS.md](CUSTOM-UNITS.md), "Symbols".
+
+**DR-27 A parsed formula keeps its text as symbol.**
+- *Decision.* A unit parsed from a formula keeps the formula, normalised, as its symbol: `m*s^-1` prints `m·s^-1`, though
+  it equals `m/s`.
+- *Why.* The symbol is what the user wrote. Printing an equal catalog unit instead would turn `kg·m^2/s^2` into `J` (the
+  energy and the torque), and a formula with a factor (`km/h`) has no label of its atoms to fall back on.
+- *Rejected.* Printing the equal catalog unit, as Indriya prints the unit it built.
+- *Revisit if.* Users expect parsed formulas to print canonically.
+- *See.* [JSR.md](JSR.md), "A parsed formula keeps its text".

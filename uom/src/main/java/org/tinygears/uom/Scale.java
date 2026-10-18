@@ -12,7 +12,7 @@ package org.tinygears.uom;
 
 /**
  * Whether a quantity is a point on its scale or a difference, which matters for units with an offset: {@code 20 °C}
- * as a point is {@code 293.15 K}, as a difference {@code 20 K} (docs/OFFSET-UNITS.md).
+ * as a point is {@code 293.15 K}, as a difference {@code 20 K} (docs/NATIVE.md#offset-units).
  */
 public enum Scale {
     /** A point: converts through the offset. */
