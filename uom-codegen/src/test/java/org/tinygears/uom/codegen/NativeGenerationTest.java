@@ -129,8 +129,8 @@ class NativeGenerationTest {
     @Test
     void mainThrowsOnFailure() {
         assertEquals(
-                "generation failed with status 2",
-                assertThrows(IllegalStateException.class, () -> GenerateNative.main(new String[0])).getMessage());
+                "usage: GenerateNative [--check] <dataDir> <quantitiesOut> <systemsOut>" + System.lineSeparator(),
+                FailingMain.usageError(() -> GenerateNative.main(new String[0])));
     }
 
     private record Run(int status, String err) {}

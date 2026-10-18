@@ -453,8 +453,8 @@ class GeneratedSourcesUpToDateTest {
     @Test
     void mainThrowsInsteadOfExitingSoMavenReportsTheFailure() {
         assertEquals(
-                "generation failed with status 2",
-                assertThrows(IllegalStateException.class, () -> Generate.main(new String[0])).getMessage());
+                "usage: Generate [--check] <dataDir> <quantitiesOut> <systemsOut> <docsOut>" + System.lineSeparator(),
+                FailingMain.usageError(() -> Generate.main(new String[0])));
     }
 
     @Test
