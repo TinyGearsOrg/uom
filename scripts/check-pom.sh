@@ -49,6 +49,7 @@ self_test() {
     "release-version-no-skip|sub('pom.xml', '<skip>false</skip>', '')|must set skip to the literal false, found ''"
     "release-version-rule|drop('pom.xml', '<requireReleaseVersion>', '</requireReleaseVersion>')|lacks the rule requireReleaseVersion"
     "release-deps-rule|drop('pom.xml', '<requireReleaseDeps>', '</requireReleaseDeps>')|lacks the rule requireReleaseDeps"
+    "release-maven-rule|sub('pom.xml', '<version>[3.9,3.10)</version>', '<version>[3.9,)</version>')|must require Maven [3.9,3.10), found '[3.9,)'"
     "release-version-order|move_enforcer_last()|must be declared before central-publishing-maven-plugin"
     "release-version-module-override|sub('uom-jsr/pom.xml', '</project>', '<profiles><profile><id>release</id><build><plugins><plugin><artifactId>maven-enforcer-plugin</artifactId><executions><execution><id>enforce-release-version</id><phase>none</phase></execution></executions></plugin></plugins></build></profile></profiles></project>')|uom-jsr: release: maven-enforcer-plugin executions must be bound to validate and deploy"
     "manifest-vendor|drop('pom.xml', '<Implementation-Vendor>', '</Implementation-Vendor>')|uom-engine: manifest entry Implementation-Vendor is ''"
@@ -175,9 +176,13 @@ if len(guard) != 1:
 if text(guard[0], 'configuration/skip') != 'false':
     fail("uom-parent: the release-version enforcer execution must set skip to the literal false, found '%s'"
          % text(guard[0], 'configuration/skip'))
-for rule in ('requireReleaseVersion', 'requireReleaseDeps'):
+for rule in ('requireReleaseVersion', 'requireReleaseDeps', 'requireMavenVersion'):
     if guard[0].find('configuration/rules/' + rule) is None:
         fail("uom-parent: the release-version enforcer execution lacks the rule " + rule)
+# Maven 3.10.0 adds maven-metadata-local.xml to the Central bundle, which Central rejects
+if text(guard[0], 'configuration/rules/requireMavenVersion/version') != '[3.9,3.10)':
+    fail("uom-parent: the release-version enforcer must require Maven [3.9,3.10), found '%s'"
+         % text(guard[0], 'configuration/rules/requireMavenVersion/version'))
 plugin_ids = [text(x, 'artifactId') for x in release[0].findall('build/plugins/plugin')]
 if plugin_ids.index('maven-enforcer-plugin') > plugin_ids.index('central-publishing-maven-plugin'):
     fail("uom-parent: the release-version enforcer must be declared before central-publishing-maven-plugin")
@@ -239,7 +244,9 @@ for mode, eff in (('default', default), ('release', rel)):
         phases = ['validate'] if mode == 'default' else ['validate', 'deploy']
         if sorted(text(e, 'phase') for e in enf.findall('executions/execution')) != sorted(phases):
             fail("%s: %s: maven-enforcer-plugin executions must be bound to %s" % (a, mode, ' and '.join(phases)))
-        rules = {r.tag: r for r in enf.findall('executions/execution/configuration/rules/*')}
+        # the build's rules; the release profile's deploy execution is checked above
+        rules = {r.tag: r for e in enf.findall('executions/execution') if text(e, 'phase') == 'validate'
+                 for r in e.findall('configuration/rules/*')}
         if 'enforce' not in [text(g, '.') for g in enf.findall('executions/execution/goals/goal')]:
             fail(a + ": maven-enforcer-plugin has no enforce goal")
         for rule, version in (('requireJavaVersion', '[17,)'), ('requireMavenVersion', '[3.9,)'),

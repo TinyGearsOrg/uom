@@ -1,3 +1,4 @@
 # SPDX-License-Identifier: Apache-2.0
-# The JDK of releases (docs/RELEASING.md); with sdkman: sdk env (or sdkman_auto_env=true).
+# The JDK and Maven of releases (docs/RELEASING.md); with sdkman: sdk env (or sdkman_auto_env=true).
 java=21.0.12+1.1-tem
+maven=3.9.16

@@ -281,6 +281,12 @@
                     <requireReleaseDeps>
                       <message>-Prelease deploy needs release dependencies (docs/RELEASING.md)</message>
                     </requireReleaseDeps>
+                    <!-- Maven 3.10.0 puts maven-metadata-local.xml into the bundle of central-publishing 0.11.0, which
+                         Central then rejects ("content that does NOT have a .pom file"); lift on a plugin that drops it -->
+                    <requireMavenVersion>
+                      <version>[3.9,3.10)</version>
+                      <message>-Prelease deploy needs Maven 3.9.x: Central rejects the bundle Maven 3.10 builds (docs/RELEASING.md)</message>
+                    </requireMavenVersion>
                   </rules>
                 </configuration>
               </execution>

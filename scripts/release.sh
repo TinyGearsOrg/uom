@@ -20,6 +20,7 @@ CENTRAL=${RELEASE_CENTRAL:-https://repo1.maven.org/maven2}
 SETTINGS=${RELEASE_SETTINGS:-$HOME/.m2/settings.xml}
 GPG_KEYS=${RELEASE_GPG_KEYS:-gpg --list-secret-keys --with-colons}
 JDK_MAJOR=${RELEASE_JDK_MAJOR:-21}
+MVN_VERSION=${RELEASE_MVN_VERSION:-mvn -v}
 TODAY=${RELEASE_DATE:-$(date -u +%Y-%m-%d)}
 # set: no fetch, CI status, Central lookup or push (the self-test works on a clone without a remote)
 OFFLINE=${RELEASE_OFFLINE:-}
@@ -62,8 +63,10 @@ import pathlib, re, sys
 root, old, v, today, repo, docs = pathlib.Path(sys.argv[1]), sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], sys.argv[6:]
 def edit(f, fn):
     p = root / f; p.write_text(fn(p.read_text()))
+# the snippets show the last release once it is out, so their version is replaced whatever it is
 for d in docs:
-    edit(d, lambda t: t.replace('<version>%s</version>' % old, '<version>%s</version>' % v))
+    edit(d, lambda t: re.sub(r'(<artifactId>uom(?:-jsr)?</artifactId>\s*<version>)[^<]*(</version>)',
+                             lambda m: m.group(1) + v + m.group(2), t))
 # the first release replaces the texts of an unreleased project; later releases find them gone
 edit('README.md', lambda t: t
      .replace('**Status:** in development, not released.', '**Status:** released, version %s.' % v)
@@ -163,6 +166,9 @@ EOF
   java=${jdk:+$jdk/bin/}java
   [[ $("$java" -XshowSettings:properties -version 2>&1 | sed -n 's/ *java.specification.version = //p') == "$JDK_MAJOR" ]] \
     || fail "$java is not JDK $JDK_MAJOR: releases are built with JDK $JDK_MAJOR (pass --jdk)"
+  # Maven 3.10 builds a bundle that Central rejects (pom.xml, the release profile's enforcer)
+  [[ $($MVN_VERSION 2>/dev/null | head -1) == "Apache Maven 3.9."* ]] \
+    || fail "$($MVN_VERSION 2>/dev/null | head -1): releases need Maven 3.9.x (docs/RELEASING.md)"
   [[ -f $SETTINGS ]] || fail "$SETTINGS has no server 'central' with a username and password"
   python3 - "$SETTINGS" <<'EOF' || fail "$SETTINGS has no server 'central' with a username and password"
 import sys, xml.etree.ElementTree as ET
@@ -247,6 +253,18 @@ self_test() {
   git clone -q "$ROOT" "$base"
   git -C "$base" remote remove origin
   git -C "$base" -c user.name=t -c user.email=t@t commit -q --allow-empty -m "test: base"
+  # whatever state main is in: a snapshot with one entry in its Unreleased section
+  (cd "$base" && mvn -q -B "$VERSIONS:set" -DnewVersion=9.9.9-SNAPSHOT -DgenerateBackupPoms=false) \
+    || fail "self-test: mvn versions:set failed"
+  python3 - "$base/CHANGELOG.md" <<'EOF'
+import re, sys
+p = sys.argv[1]; t = open(p).read()
+if '## [Unreleased]' not in t:
+    t = re.sub(r'^## \[', '## [Unreleased]\n\n## [', t, count=1, flags=re.M)
+t = t.replace('## [Unreleased]\n', '## [Unreleased]\n\n- A change of the self-test.\n', 1)
+open(p, 'w').write(t)
+EOF
+  git -C "$base" -c user.name=t -c user.email=t@t commit -q -am "test: a snapshot to release"
   printf '<settings><servers><server><id>central</id><username>u</username><password>p</password></server></servers></settings>\n' \
     > "$tmp/settings.xml"
   major=$(java -XshowSettings:properties -version 2>&1 | sed -n 's/ *java.specification.version = //p')
@@ -313,12 +331,15 @@ EOF
 
   RELEASE_SETTINGS=$tmp/none.xml run "$base" check 9.9.9 --no-verify
   [[ $status -eq 1 && $out == *"has no server 'central'"* ]] || { echo "$out"; fail "self-test settings: not detected"; }
+  RELEASE_MVN_VERSION="echo Apache Maven 3.10.0" run "$base" check 9.9.9 --no-verify
+  [[ $status -eq 1 && $out == *"Apache Maven 3.10.0: releases need Maven 3.9.x"* ]] \
+    || { echo "$out"; fail "self-test maven: not detected"; }
   RELEASE_GPG_KEYS=true run "$base" check 9.9.9 --no-verify
   [[ $status -eq 1 && $out == *"no secret key"* ]] || { echo "$out"; fail "self-test gpg: not detected"; }
-  say "self-test check settings and gpg: ok"
+  say "self-test check maven, settings and gpg: ok"
 
   run "$base" notes 9.9.9
-  [[ $status -eq 0 && $out == "The first release"*"org.tinygears:uom-jsr"* && $out != *"## ["* ]] \
+  [[ $status -eq 0 && $out == "- A change of the self-test."*"org.tinygears:uom-jsr"* && $out != *"## ["* ]] \
     || { echo "$out"; fail "self-test notes: wrong notes"; }
   run "$base" notes 9.9.8
   [[ $status -eq 1 && $out == *"pom.xml version is 9.9.9, not 9.9.8"* ]] || { echo "$out"; fail "self-test notes: version"; }

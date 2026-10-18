@@ -51,8 +51,9 @@ bundle, `skipPublishing` set literally in their POMs).
    the environment variable `MAVEN_GPG_PASSPHRASE` when it is set, else gpg-agent asks for it.
 5. **JDK 21.** Build releases with a JDK 21 (Temurin): the jars record `Build-Jdk-Spec`, so the bytes are
    reproducible per JDK version, and the reproducibility check of `verify-release.sh` compares builds on one JDK.
-   With sdkman, `.sdkmanrc` names the version: `sdk env` in the repository (or `sdkman_auto_env=true` in
-   `~/.sdkman/etc/config`) switches to it.
+   Use Maven 3.9.x: Maven 3.10.0 adds `maven-metadata-local.xml` to the Central bundle, which Central rejects; the
+   release profile's enforcer and `release.sh check` refuse Maven 3.10. With sdkman, `.sdkmanrc` names both versions:
+   `sdk env` in the repository (or `sdkman_auto_env=true` in `~/.sdkman/etc/config`) switches to them.
 
 ## Checklist
 
@@ -92,7 +93,7 @@ JDK on the `PATH`, pass `--jdk <JDK 21 home>` to `check`).
    It fails on the first problem: a dirty tree, a branch other than `main` or not equal to `origin/main`, an existing
    tag, no green CI run for the commit, a version or a text left at the old version, a changelog date that differs from
    the build timestamp, POM URLs of another repository, removed public API lines
-   within a major version, a JDK other than 21, no `central` server in `~/.m2/settings.xml`, no gpg secret key. Then it
+   within a major version, a JDK other than 21, a Maven other than 3.9.x, no `central` server in `~/.m2/settings.xml`, no gpg secret key. Then it
    runs `mvn -q -B clean verify`, `check-pom.sh`, `check-javadoc.sh` and `verify-release.sh --require-jlink`
    ([scripts/README.md](../scripts/README.md)), which builds the release artifacts into a temporary repository, checks
    their contents, reproducibility, a `jlink` image and a consumer project, and uploads nothing.
