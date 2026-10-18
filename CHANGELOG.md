@@ -91,4 +91,4 @@ Nothing is released yet; the development version is `0.1.0-SNAPSHOT`.
   80000-13). `@prefixed` accepts binary prefix symbols (`Ki` to `Yi`), and the unit format reads and writes binary
   prefixes on the units that take them; such a unit takes only the metric prefixes from kilo up (`dB` does not parse).
 
-[Unreleased]: https://github.com/TinyGearsOrg/tinyunits/commits/main
+[Unreleased]: https://github.com/TinyGearsOrg/uom/commits/main

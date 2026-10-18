@@ -46,7 +46,7 @@ temporary repository). Exit status: 0 passed, 1 a check failed (with the reason)
 ## check-workflows.sh
 
 Parses the workflow and the dependabot configuration (python3 with PyYAML) and fails when: a workflow file other than
-`ci.yml` exists; the triggers are not exactly `push` (filtered to `ng`) and an unfiltered `pull_request` (no
+`ci.yml` exists; the triggers are not exactly `push` (filtered to `main`) and an unfiltered `pull_request` (no
 `pull_request_target`); `cancel-in-progress` is not limited to pull-request runs; `permissions` is not
 exactly `contents: read` or a job sets its own; the workflow mentions `secrets`, `github.token` or `GITHUB_TOKEN`; a
 job is not `build` (matrix JDK 17, 21 and 25), `generated` or `release-check`, lacks `timeout-minutes` or runs a command

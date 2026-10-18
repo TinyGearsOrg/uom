@@ -147,7 +147,7 @@ def plugins(p):
 def plugin(p, aid):
     return next((x for (g, a), x in plugins(p).items() if a == aid), None)
 
-REPO = 'https://github.com/TinyGearsOrg/tinyunits'
+REPO = 'https://github.com/TinyGearsOrg/uom'
 PUBLISHED = ['uom-parent', 'uom-engine', 'uom', 'uom-jsr']
 UNPUBLISHED = ['uom-codegen', 'uom-tck', 'uom-examples']
 RELEASE_ONLY = ['maven-source-plugin', 'maven-javadoc-plugin', 'maven-gpg-plugin', 'central-publishing-maven-plugin']
@@ -204,8 +204,8 @@ expected = {
     'developers/developer/name': 'Thomas Neidhart',
     'developers/developer/email': 'thomas.neidhart@gmail.com',
     'scm/url': REPO,
-    'scm/connection': 'scm:git:https://github.com/TinyGearsOrg/tinyunits.git',
-    'scm/developerConnection': 'scm:git:git@github.com:TinyGearsOrg/tinyunits.git',
+    'scm/connection': 'scm:git:https://github.com/TinyGearsOrg/uom.git',
+    'scm/developerConnection': 'scm:git:git@github.com:TinyGearsOrg/uom.git',
     'issueManagement/system': 'GitHub',
     'issueManagement/url': REPO + '/issues',
 }

@@ -11,7 +11,7 @@
   <packaging>pom</packaging>
   <name>uom-parent</name>
   <description>Parent POM of uom, a Java library of typed quantities and units of measurement implementing JSR-385.</description>
-  <url>https://github.com/TinyGearsOrg/tinyunits</url>
+  <url>https://github.com/TinyGearsOrg/uom</url>
   <inceptionYear>2026</inceptionYear>
 
   <licenses>
@@ -45,15 +45,15 @@
   <scm child.scm.connection.inherit.append.path="false"
        child.scm.developerConnection.inherit.append.path="false"
        child.scm.url.inherit.append.path="false">
-    <connection>scm:git:https://github.com/TinyGearsOrg/tinyunits.git</connection>
-    <developerConnection>scm:git:git@github.com:TinyGearsOrg/tinyunits.git</developerConnection>
+    <connection>scm:git:https://github.com/TinyGearsOrg/uom.git</connection>
+    <developerConnection>scm:git:git@github.com:TinyGearsOrg/uom.git</developerConnection>
     <tag>HEAD</tag>
-    <url>https://github.com/TinyGearsOrg/tinyunits</url>
+    <url>https://github.com/TinyGearsOrg/uom</url>
   </scm>
 
   <issueManagement>
     <system>GitHub</system>
-    <url>https://github.com/TinyGearsOrg/tinyunits/issues</url>
+    <url>https://github.com/TinyGearsOrg/uom/issues</url>
   </issueManagement>
 
   <properties>

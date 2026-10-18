@@ -43,6 +43,4 @@ No version has been released, signed, tagged or uploaded. The release is prepare
 - Generate a Central Portal user token and put it into `~/.m2/settings.xml` under the server id `central` (never into
   the repository).
 - Replace `0.1.0-SNAPSHOT` with the release version and set `project.build.outputTimestamp` (RELEASING, step 1).
-- Decide the CI items of item 31 (SHA pinning of actions, duplicate push and pull-request runs, `cancel-in-progress` on
-  `main`, job-level permissions), push the branch and see the workflow green on JDK 21 and 25.
-- Decide the repository rename; the POM's `url`, `scm` and `issueManagement` follow it.
+- See the CI workflow green on `main` of `TinyGearsOrg/uom` (JDK 17, 21 and 25 and the release check).

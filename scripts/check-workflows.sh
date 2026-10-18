@@ -37,10 +37,10 @@ self_test() {
     "third-party-action|sub(CI, 'actions/setup-java@', 'someone/setup-java@')|action 'someone/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1' is not an allowed action"
     "no-timeout|sub(CI, '    timeout-minutes: 45\n', '')|job release-check has no timeout-minutes"
     "no-concurrency|drop(CI, 'concurrency:', '== \'pull_request\' }}\n')|concurrency group must contain github.ref"
-    "push-all-branches|sub(CI, '  push:\n    branches: [ng]\n', '  push:\n')|push must be filtered to branches ['ng'], is None"
-    "push-other-branch|sub(CI, 'branches: [ng]', 'branches: [ng, main]')|push must be filtered to branches ['ng'], is {'branches': ['ng', 'main']}"
-    "trigger-list|sub(CI, '  push:\n    branches: [ng]\n  pull_request:\n', '  [push, pull_request]\n')|push must be filtered to branches ['ng'], is None"
-    "pull-request-filter|sub(CI, '  pull_request:\n', '  pull_request:\n    branches: [ng]\n')|pull_request must not be filtered"
+    "push-all-branches|sub(CI, '  push:\n    branches: [main]\n', '  push:\n')|push must be filtered to branches ['main'], is None"
+    "push-other-branch|sub(CI, 'branches: [main]', 'branches: [main, ng]')|push must be filtered to branches ['main'], is {'branches': ['main', 'ng']}"
+    "trigger-list|sub(CI, '  push:\n    branches: [main]\n  pull_request:\n', '  [push, pull_request]\n')|push must be filtered to branches ['main'], is None"
+    "pull-request-filter|sub(CI, '  pull_request:\n', '  pull_request:\n    branches: [main]\n')|pull_request must not be filtered"
     "cancel-all|sub(CI, \"cancel-in-progress: \${{ github.event_name == 'pull_request' }}\", 'cancel-in-progress: true')|cancel-in-progress must be"
     "matrix|sub(CI, 'java: [17, 21, 25]', 'java: [21, 25]')|build matrix java is [21, 25], expected [17, 21, 25]"
     "distribution|sub(CI, 'distribution: temurin', 'distribution: zulu')|setup-java distribution is 'zulu'"
@@ -143,14 +143,14 @@ if triggers != ['pull_request', 'push']:
 if ci.get('permissions') != {'contents': 'read'}:
     fail("permissions are %s, expected {'contents': 'read'}" % ci.get('permissions'))
 filters = on if isinstance(on, dict) else {}
-if filters.get('push') != {'branches': ['ng']}:
-    fail("push must be filtered to branches ['ng'], is %s" % filters.get('push'))
+if filters.get('push') != {'branches': ['main']}:
+    fail("push must be filtered to branches ['main'], is %s" % filters.get('push'))
 if filters.get('pull_request') is not None:
     fail("pull_request must not be filtered, is %s" % filters.get('pull_request'))
 concurrency = ci.get('concurrency') or {}
 if '${{ github.ref }}' not in str(concurrency.get('group', '')):
     fail("concurrency group must contain github.ref")
-# only pull-request runs are cancelled, so every commit on ng gets a complete run
+# only pull-request runs are cancelled, so every commit on main gets a complete run
 CANCEL = "${{ github.event_name == 'pull_request' }}"
 if concurrency.get('cancel-in-progress') != CANCEL:
     fail("cancel-in-progress must be %s, is %s" % (CANCEL, concurrency.get('cancel-in-progress')))
