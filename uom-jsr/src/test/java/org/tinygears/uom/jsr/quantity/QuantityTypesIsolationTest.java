@@ -28,28 +28,21 @@ class QuantityTypesIsolationTest {
     private static final String PKG = "org.tinygears.uom.jsr.quantity.";
 
     @Test
-    void conflictingAlternateOnlyBreaksItsOwnType() throws Exception {
+    void conflictingAlternateFailsAtItsOwnCall() throws Exception {
         try (Loader l = new Loader()) {
             Class<?> baseUnits = Class.forName("org.tinygears.uom.jsr.BaseUnits", true, l);
             Object metre = baseUnits.getField("METRE").get(null);
-            metre.getClass().getMethod("alternate", String.class).invoke(metre, "Hz");
+            Method alternate = metre.getClass().getMethod("alternate", String.class);
+            // The built-in alternate units are reserved before any catalog loads.
+            var e = assertThrows(InvocationTargetException.class, () -> alternate.invoke(metre, "Hz"));
+            assertEquals("symbol Hz is already associated to a different unit", e.getCause().getMessage());
+            assertEquals("javax.measure.MeasurementException", e.getCause().getClass().getName());
 
             Class<?> types = Class.forName(PKG + "QuantityTypes", true, l);
             Method factory = types.getMethod("factory", Class.class);
-            Object length = factory.invoke(null, l.javax("Length"));
-            assertSame(Class.forName(PKG + "LengthFactory", true, l).getField("INSTANCE").get(null), length);
             assertEquals(33, ((Set<?>) types.getMethod("types").invoke(null)).size());
-
-            var first = assertThrows(InvocationTargetException.class, () -> factory.invoke(null, l.javax("Frequency")));
-            assertInstanceOf(ExceptionInInitializerError.class, first.getCause());
-            assertTrue(rootCause(first).getMessage().contains("Hz"), rootCause(first).toString());
-            var second = assertThrows(
-                    InvocationTargetException.class,
-                    () -> factory.invoke(null, l.javax("Frequency")));
-            assertInstanceOf(NoClassDefFoundError.class, second.getCause());
-
-            for (String name : new String[] { "Mass", "Time", "Radioactivity" }) {
-                assertNotNull(factory.invoke(null, l.javax(name)), name);
+            for (Object type : (Set<?>) types.getMethod("types").invoke(null)) {
+                assertNotNull(factory.invoke(null, type), type.toString());
             }
         }
     }

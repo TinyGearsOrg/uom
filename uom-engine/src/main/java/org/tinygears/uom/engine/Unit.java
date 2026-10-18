@@ -287,7 +287,9 @@ public final class Unit implements Serializable {
     }
 
     /**
-     * An alternate unit of this unscaled unit, registered under {@code symbol} (JVM-wide, permanently).
+     * An alternate unit of this unscaled unit, registered under {@code symbol} (JVM-wide, for the life of the JVM;
+     * the symbols of the built-in catalogs are taken from the start). The alternate of an atom's unit under the atom's
+     * own symbol is that unit.
      *
      * @param symbol the symbol
      * @return the alternate unit

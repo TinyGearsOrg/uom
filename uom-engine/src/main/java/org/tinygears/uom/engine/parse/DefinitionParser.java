@@ -31,6 +31,7 @@ import org.tinygears.uom.engine.Unit;
 import org.tinygears.uom.engine.UnitAtom;
 import org.tinygears.uom.engine.UnitException;
 import org.tinygears.uom.engine.format.Prefix;
+import org.tinygears.uom.engine.internal.AlternateUnits;
 
 /** Parses {@code .units} definition files: one {@code symbol[:name] body [Type] [# comment]} per line. */
 public final class DefinitionParser {
@@ -153,8 +154,8 @@ public final class DefinitionParser {
 
     /**
      * Parses {@code reader} without closing it; included files are opened and closed here. Alternate-unit
-     * registrations ({@code ~} lines) are JVM-global and permanent, so a failed or corrected {@code ~}
-     * definition cannot be re-registered differently until the JVM restarts.
+     * registrations ({@code ~} lines) are JVM-global: those of a successful parse stay for the life of the JVM, so a
+     * symbol cannot be defined differently until it restarts; a failed parse removes those it made.
      *
      * @param source the name of the file, used in messages and to detect include cycles
      * @param reader the content
@@ -180,7 +181,10 @@ public final class DefinitionParser {
     public static Definitions parse(String source, Reader reader, Resolver resolver, Function<String, Unit> known) {
         DefinitionParser p = new DefinitionParser(resolver, Objects.requireNonNull(known, "known"));
         try {
-            p.file(source, reader);
+            AlternateUnits.atomically(() -> {
+                p.file(source, reader);
+                return null;
+            });
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }

@@ -29,6 +29,7 @@ import java.util.Set;
 import java.util.function.Function;
 
 import org.tinygears.uom.engine.Unit;
+import org.tinygears.uom.engine.internal.AlternateUnits;
 import org.tinygears.uom.engine.parse.Definition;
 import org.tinygears.uom.engine.parse.DefinitionException;
 import org.tinygears.uom.engine.parse.DefinitionParser;
@@ -153,8 +154,11 @@ public final class UnitSystemLoader {
             DefinitionParser.Resolver resolver,
             Builtins builtins
     ) {
-        Definitions d = DefinitionParser.parse(source, reader, resolver, builtins.known());
-        return build(new Parsed(d), source, defaultName, builtins, new HashMap<>());
+        // a system that fails to build after its parse removes its alternate units as well
+        return AlternateUnits.atomically(() -> {
+            Definitions d = DefinitionParser.parse(source, reader, resolver, builtins.known());
+            return build(new Parsed(d), source, defaultName, builtins, new HashMap<>());
+        });
     }
 
     /** One parse indexed for building its systems: definitions by symbol, by-file lists, prefixed lines by unit. */

@@ -395,6 +395,25 @@ behaviour for users is in the linked documents. The full discussion and probe re
 - *See.* `Precision`, `NumberText`; `AbstractDecimalQuantityTest.digitsAndPrecisionAreBounded`,
   `DecimalParseTest.digitsBeyondTheBoundAreAParseError`, `NativeFormatTest`, `QuantitySerializationTest`.
 
+**DR-23 One JVM-wide registry of alternate units, with all-or-nothing loads.**
+- *Decision.* Alternate units stay in one JVM-wide registry (`AlternateUnits`). It holds the base atoms and the seven
+  built-in alternate units (`rad`, `sr`, `Hz`, `Bq`, `Gy`, `Sv`, `bit`) from its initialisation; a load of `.units`
+  files (`DefinitionParser.parse`, `UnitSystemLoader.load`) registers its alternates all or nothing; the alternate of
+  an atom's unit under the atom's own symbol is that unit (`rad.alternate("rad")`, as `m.alternate("m")`). A symbol
+  of a successful load stays bound until the JVM restarts.
+- *Why.* JSR-385 `Unit.alternate` must throw for a symbol "already associated to a different unit", which needs a
+  record of the symbols. Before, a failed load left its symbols bound, `rad.alternate("rad")` threw while
+  `m.alternate("m")` did not, and a conflicting `alternate("Hz")` before `SI` loaded broke the `Frequency` factory.
+  The reservation is a fixed list in the engine, which knows no catalog; a test compares it with the `~` lines of
+  `data/`. Loading the catalogs on the first registration instead would initialise catalog classes from inside
+  another catalog's initialisation.
+- *Rejected.* A scoped registry, alternates of a run-time file living in its system with the definition part of an
+  atom's identity: two loads could then define one symbol differently, but `UnitAtom` equality, the serial form and
+  formatting (one symbol, two units) would change, for a need nobody has.
+- *Revisit if.* One JVM has to load conflicting definitions of a symbol (several tenants, reloading edited files).
+- *See.* `AlternateUnitsTest` (engine and `uom-jsr`), `UserUnitsTest.aFailedLoadLeavesNoAlternateUnits`,
+  `QuantityTypesIsolationTest`.
+
 ## 2. Modules and data flow
 
 ```
@@ -446,7 +465,8 @@ the catalogs are one module because the typed quantities need the provider (`asT
     differ, so `RADIAN` is equivalent to `ONE` and hertz to becquerel.
   - `alternate(String)` creates an atom. The standard requires an exception when the symbol
     is already bound to a different unit, so alternate symbols use one small static registry.
-    This is the only global state in the units core.
+    This is the only global state in the units core. It holds the base atoms and the built-in alternate units from
+    the start; a load of `.units` files registers all its alternates or none (DR-23).
 - **Converters.** Identity, affine (`factor * x + offset`) and concatenation. Factors are exact
   rationals, optionally times a power of pi, so degrees and gradians are exact (N2). Each
   converter also caches the rounded `double` of its factor and offset, computed once.
@@ -748,7 +768,8 @@ statC:statcoulomb    1|2997924580 C           # exact fraction
     ones, labels copied. A symbol of a given system that resolves (exactly or as a prefixed form) or as a label to a
     different unit is an `IllegalArgumentException` naming both systems; equal units are fine. Two formats can hold
     different systems with the same symbol.
-  - Exception: `~` lines register their alternate symbols in the JVM-wide registry permanently (section 3).
+  - Exception: `~` lines register their alternate symbols in the JVM-wide registry for the life of the JVM, unless
+    the load fails (section 3, DR-23).
 - **Prefixes.** `@prefixed` generates the curated prefixed units (`SI.KILOMETRE`). At run time
   `UomUnitFormat` also resolves a metric prefix on any unit in `SI.PREFIXABLE`, so `Mm` and `dam`
   parse without a constant, and a binary prefix on a unit in a `BINARY_PREFIXABLE` set (`Information`: `ZiB`). A unit

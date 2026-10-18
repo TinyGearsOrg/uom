@@ -10,8 +10,10 @@
 
 package org.tinygears.uom.engine.internal;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.tinygears.uom.engine.Dimension;
@@ -26,6 +28,12 @@ public final class AlternateUnits {
     // The only global state of the engine.
     private static final Map<String, Registered> REGISTRY = new ConcurrentHashMap<>();
 
+    // The registrations of the load running on this thread, removed again if it fails.
+    private static final ThreadLocal<List<Registered>> LOAD = new ThreadLocal<>();
+
+    // The symbols of the built-in catalogs' alternate units (the ~ lines of data/*.units).
+    static final Set<String> BUILT_IN = Set.of("rad", "sr", "Hz", "Bq", "Gy", "Sv", "bit");
+
     static {
         for (UnitAtom base : List.of(
                 UnitAtom.METRE,
@@ -37,6 +45,16 @@ public final class AlternateUnits {
                 UnitAtom.CANDELA)) {
             REGISTRY.put(base.symbol(), new Registered(base, Map.of(base, 1)));
         }
+        // Reserved before any other registration, so a conflicting one fails at its own call, not in a catalog.
+        Map<UnitAtom, Integer> perSecond = Map.of(UnitAtom.SECOND, -1);
+        Map<UnitAtom, Integer> joulePerKilogram = Map.of(UnitAtom.METRE, 2, UnitAtom.SECOND, -2);
+        for (String symbol : List.of("rad", "sr", "bit")) {
+            register(symbol, Map.of());
+        }
+        register("Hz", perSecond);
+        register("Bq", perSecond);
+        register("Gy", joulePerKilogram);
+        register("Sv", joulePerKilogram);
     }
 
     private AlternateUnits() {
@@ -57,7 +75,57 @@ public final class AlternateUnits {
         Map<UnitAtom, Integer> atoms = Atoms.normalize(definition);
         Registered fresh = new Registered(new UnitAtom(symbol, Atoms.dimension(atoms)), atoms);
         Registered existing = REGISTRY.putIfAbsent(symbol, fresh);
-        return existing == null ? fresh.atom() : matching(existing, fresh.atom(), fresh.definition());
+        if (existing == null) {
+            List<Registered> load = LOAD.get();
+            if (load != null) {
+                load.add(fresh);
+            }
+            return fresh.atom();
+        }
+        // An atom's alternate under its own symbol is the atom: rad.alternate("rad"), as m.alternate("m").
+        return atoms.equals(Map.of(existing.atom(), 1))
+                ? existing.atom()
+                : matching(existing, fresh.atom(), fresh.definition());
+    }
+
+    /** A load of definitions that may register alternate units. */
+    @FunctionalInterface
+    public interface Load<T, E extends Exception> {
+        /**
+         * Runs the load.
+         *
+         * @return the result
+         * @throws E if the load fails
+         */
+        T run() throws E;
+    }
+
+    /**
+     * Runs {@code load} so that its registrations are all or nothing: if it throws, the symbols it registered are
+     * removed again. A load inside another joins the outer one.
+     *
+     * @param <T> the result type
+     * @param <E> the checked exception of the load
+     * @param load the load
+     * @return the result of the load
+     * @throws E if the load throws it
+     */
+    public static <T, E extends Exception> T atomically(Load<T, E> load) throws E {
+        if (LOAD.get() != null) {
+            return load.run();
+        }
+        List<Registered> added = new ArrayList<>();
+        LOAD.set(added);
+        try {
+            return load.run();
+        } catch (Throwable t) {
+            for (Registered r : added) {
+                REGISTRY.remove(r.atom().symbol(), r);
+            }
+            throw t;
+        } finally {
+            LOAD.remove();
+        }
     }
 
     /**

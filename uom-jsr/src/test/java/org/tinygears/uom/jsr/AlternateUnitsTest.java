@@ -23,6 +23,7 @@ import org.junit.jupiter.api.Test;
 
 import org.tinygears.uom.engine.Dimension;
 import org.tinygears.uom.engine.UnitAtom;
+import org.tinygears.uom.jsr.systems.SI;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -75,6 +76,17 @@ class AlternateUnitsTest {
     @Test
     void sameDefinitionIsIdempotent() {
         assertEquals(ONE.alternate("rad"), ONE.alternate("rad"));
+    }
+
+    @Test
+    void anAlternateUnderItsOwnSymbolIsTheUnit() {
+        Unit<?> rad = ONE.alternate("rad");
+        assertEquals(rad, rad.alternate("rad"));
+        assertEquals(METRE, METRE.alternate("m"));
+        assertEquals(SI.STERADIAN, SI.STERADIAN.alternate("sr"));
+        assertEquals(
+                "symbol rad is already associated to a different unit",
+                assertThrows(MeasurementException.class, () -> SI.STERADIAN.alternate("rad")).getMessage());
     }
 
     @Test

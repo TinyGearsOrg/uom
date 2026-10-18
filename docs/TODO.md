@@ -47,19 +47,6 @@ first second implementation. Re-run the TCK in CI and publish the result rather 
 
 **Needed by:** before the first release announcement.
 
-## 23. Alternate-unit registry (global state)
-
-**Status:** open, decision needed. Alternate units (`~` lines, `UomUnit.alternate`) register in one JVM-wide registry.
-- Alternates of user `.units` files and of a failed `parse` stay registered for the life of the JVM; loading the same
-  definition again works, a different one is an error until restart. A scoped registry for run-time files is the proposed
-  fix.
-- `rad.alternate("rad")` throws while `METRE.alternate("m")` returns an equal unit: accept `{existingAtom:1}` as the same
-  definition or document it.
-- One conflicting registration breaks initialisation: `SI` loads all 33 factories through `PREFERRED`, so a conflicting
-  alternate breaks `SI` (the factories are built lazily per type in `QuantityTypes`).
-
-**Needed by:** decide before 1.0 (user-visible behaviour of `load`).
-
 ## 27. User-unit loader
 
 **Status:** open, decision needed.

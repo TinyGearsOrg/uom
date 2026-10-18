@@ -19,6 +19,10 @@ Nothing is released yet; the development version is `0.1.0-SNAPSHOT`.
   context only): creation, arithmetic (exact `UNLIMITED` results included) and the serial form throw beyond it, and
   the quantity format refuses a longer number before parsing it. At precision 50000 a result below 1 no longer
   passes the scale bound (DESIGN DR-22).
+- Alternate units: a load of `.units` files that fails leaves none of its `~` symbols registered; the seven built-in
+  alternate units are reserved from the start, so a conflicting `alternate("Hz")` fails at that call instead of
+  breaking the `Frequency` factory; `rad.alternate("rad")` returns `rad`, as `m.alternate("m")` returns `m` (DESIGN
+  DR-23).
 
 ### Added
 

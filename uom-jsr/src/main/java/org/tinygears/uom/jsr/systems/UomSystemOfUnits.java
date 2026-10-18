@@ -155,8 +155,8 @@ public final class UomSystemOfUnits implements SystemOfUnits {
      * names one of the 33 standard quantity types by simple name; a type without one takes the first
      * {@code @extends}-ed system's preferred unit, else {@link SI}'s. Units are {@code Unit<?>}: narrow them with
      * {@code asType}. Nothing is registered globally, except that {@code ~} lines register their alternate-unit
-     * symbols in the JVM-wide registry permanently: loading the same definition again works, a different one for
-     * the same symbol is an error until the JVM restarts. {@code @prefixed u k} checks only the generated
+     * symbols in the JVM-wide registry for the life of the JVM: loading the same definition again works, a different
+     * one for the same symbol is an error until the JVM restarts. A load that fails registers nothing. {@code @prefixed u k} checks only the generated
      * {@code ku} against the built-in symbols, though every prefix {@code u} takes (see {@link UomUnitFormat}) is
      * readable at run time; an exact built-in symbol wins over such a reading.
      *

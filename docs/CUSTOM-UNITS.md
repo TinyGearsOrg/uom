@@ -412,7 +412,8 @@ not the micro sign U+00B5 of the metric prefix, and the ohm sign U+2126 is not t
 
 - **Alternate units are permanent.** A `~` line registers its symbol in a JVM-wide registry for the life of the JVM:
   loading the same definition again works, but a different definition for the same symbol is an error until the JVM
-  restarts, even after the first load failed or its system was discarded.
+  restarts, even after its system was discarded. A load that fails registers nothing. The symbols of the built-in
+  alternate units (`rad`, `sr`, `Hz`, `Bq`, `Gy`, `Sv`, `bit`) are taken from the start.
 - **The resolver contract.** A `Resolver` returns a fresh `Reader` for a name, or null when there is no such file
   (`cannot include`); an `IOException` is reported the same way with the exception as cause. Within one `load` it is
   called at most once per name; the reader is read fully and closed by the loader. A reader that fails while it is

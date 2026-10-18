@@ -105,7 +105,9 @@ public final class SystemOfUnits {
      * for a name it does not have (the function itself null: none).
      * Formulas may use the symbols of {@link UnitFormat#standard()}, which the file may not define; a type without a
      * {@code @preferred} unit takes the first {@code @extends}-ed system's, else SI's. A unit is typed with the
-     * quantity type of its system unit, else {@link Untyped}.
+     * quantity type of its system unit, else {@link Untyped}. {@code ~} lines register their alternate-unit symbols
+     * in the JVM-wide registry for the life of the JVM: loading the same definition again works, a different one for
+     * the same symbol is an error until the JVM restarts. A load that fails registers nothing.
      *
      * @param name the file name in messages and the default system name
      * @param reader the content of the root file

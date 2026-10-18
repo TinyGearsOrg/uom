@@ -148,6 +148,18 @@ class UserUnitsTest {
     }
 
     @Test
+    void aFailedLoadLeavesNoAlternateUnits() {
+        // the parse succeeds and the system fails to build: its alternate unit is removed again
+        fails("tpx:pixel ~\n@preferred Time tpx\n", "user.units:2: unit 'tpx' is not a unit of Time");
+        fails("tdot ~\ntbad tundefined\n", "user.units:2: unknown unit 'tundefined'");
+        UomSystemOfUnits fixed = load("tpx:pixel ~ m\ntdot ~ s\n");
+        assertEquals(SI.METRE.getDimension(), fixed.getUnit("tpx").getDimension());
+        assertEquals(SI.SECOND.getDimension(), fixed.getUnit("tdot").getDimension());
+        // a successful load keeps them for the life of the JVM
+        fails("tpx ~ s\n", "user.units:1: symbol tpx is already associated to a different unit");
+    }
+
+    @Test
     void preferredErrors() {
         String base = "league:league 3 mi\nfurlong:furlong 220 yd\n";
         fails(base + "@preferred Foo league\n", "user.units:3: unknown quantity type 'Foo'");
