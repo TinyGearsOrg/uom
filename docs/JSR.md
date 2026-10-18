@@ -8,7 +8,7 @@ It brings `uom`, `uom-engine` and `javax.measure:unit-api` 2.2, the only third-p
 <dependency>
   <groupId>org.tinygears</groupId>
   <artifactId>uom-jsr</artifactId>
-  <version>0.1.0-SNAPSHOT</version>
+  <version>0.1.0</version>
 </dependency>
 ```
 

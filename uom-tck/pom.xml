@@ -7,7 +7,7 @@
   <parent>
     <groupId>org.tinygears</groupId>
     <artifactId>uom-parent</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
+    <version>0.1.0</version>
   </parent>
 
   <!-- Never published: runs the JSR-385 TCK (FULL profile) against the uom module and its provider. -->

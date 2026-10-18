@@ -3,7 +3,7 @@
 All notable changes are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the project follows [semantic versioning](https://semver.org/) from 1.0.0 (see [docs/DESIGN.md](docs/DESIGN.md), section 8).
 
-## [Unreleased]
+## [0.1.0] - 2026-10-18
 
 The first release, 0.1.0.
 
@@ -42,4 +42,4 @@ The first release, 0.1.0.
 - Java serialization of units and quantities through proxies that re-check every invariant on reading
   ([SECURITY.md](SECURITY.md)).
 
-[Unreleased]: https://github.com/TinyGearsOrg/uom/commits/main
+[0.1.0]: https://github.com/TinyGearsOrg/uom/releases/tag/v0.1.0

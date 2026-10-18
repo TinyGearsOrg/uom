@@ -9,12 +9,11 @@ holds for `uom-jsr` too, with the differences listed there.
 <dependency>
   <groupId>org.tinygears</groupId>
   <artifactId>uom</artifactId>
-  <version>0.1.0-SNAPSHOT</version>
+  <version>0.1.0</version>
 </dependency>
 ```
 
-On the module path: `requires org.tinygears.uom;`. Java 17 or later; not published yet (build it with
-`mvn -q -B install -DskipTests`).
+On the module path: `requires org.tinygears.uom;`. Java 17 or later, from Maven Central.
 
 Packages: `org.tinygears.uom` (`Quantity`, `Unit`, `Scale`, `Untyped`, `UnitFormat`, `QuantityFormat`,
 `SystemOfUnits`), `org.tinygears.uom.quantity` (the 33 generated types, `Length`, `Speed`, ...) and

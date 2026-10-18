@@ -14,14 +14,14 @@ a native API with typed products and a JSR-385 implementation, on one exact engi
   <img src="https://img.shields.io/badge/Java-17%2B-orange" alt="Java 17+">
   <a href="docs/JSR.md"><img src="https://img.shields.io/badge/JSR--385-unit--api%202.2-blue" alt="JSR-385: unit-api 2.2"></a>
   <a href="docs/JSR.md"><img src="https://img.shields.io/badge/TCK-113%2F113-brightgreen" alt="TCK: 113 of 113"></a>
-  <img src="https://img.shields.io/badge/release-not%20yet-lightgrey" alt="Release: not yet">
+  <a href="https://central.sonatype.com/artifact/org.tinygears/uom"><img src="https://img.shields.io/maven-central/v/org.tinygears/uom" alt="Maven Central"></a>
 </p>
 
 uom is a Java library for typed quantities and units of measurement with two APIs on one engine: `uom`, its own API,
 with units typed by its quantity types and typed products, and `uom-jsr`, a JSR-385 implementation (`javax.measure`,
 unit-api 2.2). Units convert exactly (rationals, powers of pi and roots); values are `double` or exact `BigDecimal`.
 
-**Status:** in development, not released. Both APIs have typed `double` and `BigDecimal` quantities for all 33 quantity
+**Status:** released, version 0.1.0. Both APIs have typed `double` and `BigDecimal` quantities for all 33 quantity
 types, eight catalogs (`SI`, `USCustomary`, `Imperial`, `CGS`, `ESU`, `EMU`, `Gaussian`, `Information`; listed in
 [docs/UNITS.md](docs/UNITS.md)), unit and quantity formats, user `.units` files and serialization. The JSR-385 TCK
 (`unit-tck` 2.2) passes 113 of 113 tests; `mvn -q -B clean verify` runs 1344 tests (engine 70, uom 24, uom-jsr 886,
@@ -57,13 +57,13 @@ This is the native API of uom, the artifact `uom`. The artifact `uom-jsr` is a f
 
 ## Install
 
-Java 17 or later. Not published yet; after `mvn -q -B install -DskipTests` in this repository:
+Java 17 or later, from Maven Central:
 
 ```xml
 <dependency>
   <groupId>org.tinygears</groupId>
   <artifactId>uom</artifactId>
-  <version>0.1.0-SNAPSHOT</version>
+  <version>0.1.0</version>
 </dependency>
 ```
 
