@@ -18,6 +18,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Locale;
+import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -25,12 +26,15 @@ import org.junit.jupiter.api.io.TempDir;
 import org.tinygears.uom.engine.Factor;
 import org.tinygears.uom.quantity.Force;
 import org.tinygears.uom.quantity.Length;
+import org.tinygears.uom.quantity.QuantityTypes;
 import org.tinygears.uom.quantity.Speed;
 import org.tinygears.uom.quantity.Temperature;
+import org.tinygears.uom.quantity.Time;
 import org.tinygears.uom.systems.CGS;
 import org.tinygears.uom.systems.Information;
 import org.tinygears.uom.systems.SI;
 import org.tinygears.uom.systems.USCustomary;
+import org.tinygears.uom.systems.UnitSystems;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -130,6 +134,26 @@ class NativeFormatTest {
                 assertThrows(UnsupportedOperationException.class, () -> Untyped.of(1, SI.METRE).toSystem(SI.SYSTEM))
                         .getMessage());
         assertTrue(Information.SYSTEM.isBinaryPrefixable("B"));
+    }
+
+    // DR-24: a preferred unit taken from SI is not a member of the system, as on the JSR-385 side
+    @Test
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    void fallbackPreferredUnitsAreNotMembers() {
+        int outside = 0;
+        for (SystemOfUnits system : UnitSystems.all()) {
+            for (Class<?> type : QuantityTypes.types()) {
+                Unit<?> preferred = system.unit((Class) type);
+                if (!system.units().contains(preferred)) {
+                    assertEquals(Optional.empty(), system.unit(preferred.symbol()), system.name() + " " + type);
+                    outside++;
+                }
+            }
+        }
+        assertEquals(156, outside);
+        assertSame(SI.SECOND, USCustomary.SYSTEM.unit(Time.class));
+        assertEquals(Optional.empty(), USCustomary.SYSTEM.unit("s"));
+        assertEquals(1800.0, Time.of(0.5, SI.HOUR).toSystem(USCustomary.SYSTEM).value());
     }
 
     @Test

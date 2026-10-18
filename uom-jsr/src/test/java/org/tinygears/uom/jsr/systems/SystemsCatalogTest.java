@@ -53,7 +53,9 @@ import org.tinygears.uom.jsr.UomUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Each system agrees with its data file, resolved here independently of the generator (D2 to D4). */
 class SystemsCatalogTest {
@@ -327,5 +329,34 @@ class SystemsCatalogTest {
         assertEquals(SI.TESLA, ESU.SYSTEM.getUnit(MagneticFluxDensity.class));
         assertEquals("T", ESU.SYSTEM.getUnit(MagneticFluxDensity.class).getSymbol());
         assertSame(EMU.ABAMPERE, EMU.SYSTEM.getUnit(ElectricCurrent.class));
+    }
+
+    // DR-24: a preferred unit taken from SI is not a member of the system; units of an @extends-ed parent are.
+    @Test
+    void fallbackPreferredUnitsAreNotMembers() throws Exception {
+        List<String> outside = new ArrayList<>();
+        for (Catalog c : CATALOGS) {
+            for (String name : TYPES) {
+                @SuppressWarnings({ "unchecked", "rawtypes" })
+                Class<Q> type = (Class) Class.forName("javax.measure.quantity." + name);
+                Unit<?> preferred = c.system().getUnit(type);
+                if (!c.system().getUnits().contains(preferred)) {
+                    assertNull(c.system().getUnit(preferred.getSymbol()), c.name() + " " + name);
+                    outside.add(c.name() + " " + name);
+                }
+            }
+        }
+        assertEquals(156, outside.size());
+        assertEquals(
+                List.of("SI Acceleration", "SI Dimensionless", "SI Speed"),
+                outside.stream().filter(p -> p.startsWith("SI ")).toList());
+        assertEquals(SI.SECOND, USCustomary.SYSTEM.getUnit(Time.class));
+        assertNull(USCustomary.SYSTEM.getUnit("s"));
+        assertTrue(outside.contains("USCustomary Time"));
+        assertEquals(SI.METRE, Information.SYSTEM.getUnit(Length.class));
+        assertNull(Information.SYSTEM.getUnit("m"));
+        // ESU extends CGS, so CGS's preferred units are members of ESU
+        assertSame(SI.CENTIMETRE, ESU.SYSTEM.getUnit(Length.class));
+        assertSame(SI.CENTIMETRE, ESU.SYSTEM.getUnit("cm"));
     }
 }

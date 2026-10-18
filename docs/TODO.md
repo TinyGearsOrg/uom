@@ -47,17 +47,6 @@ first second implementation. Re-run the TCK in CI and publish the result rather 
 
 **Needed by:** before the first release announcement.
 
-## 27. User-unit loader
-
-**Status:** open, decision needed.
-- Fallback preferred units are not members of the system (`USCustomary.SYSTEM.getUnit(Time.class)` is `s`, but
-  `getUnit("s")` is null). Indriya 2.2 never returns a non-member: its `Units` registers each unit with its quantity
-  type, and systems-common 2.1's `USCustomary` and `Imperial` return null from `getUnit(Class)` for every type. Options:
-  list the fallback units as members, document the fallback, or return null (then `toSystem(system)` fails for those
-  types).
-
-**Needed by:** nothing.
-
 ## 31. Build and CI tooling
 
 **Status:** open.

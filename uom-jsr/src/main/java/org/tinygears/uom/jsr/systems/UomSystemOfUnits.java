@@ -229,7 +229,11 @@ public final class UomSystemOfUnits implements SystemOfUnits {
         return name;
     }
 
-    /** Returns the preferred unit for the type, or null when none is defined. */
+    /**
+     * Returns the preferred unit for the type: the system's own {@code @preferred} unit, else the first
+     * {@code @extends}-ed system's, else {@link SI}'s; null for a type outside the 33 standard ones. A unit taken from
+     * SI is not a member of the system: {@link #getUnit(String)} and {@link #getUnits()} do not have it.
+     */
     @Override
     @SuppressWarnings("unchecked")
     public <Q extends Quantity<Q>> Unit<Q> getUnit(Class<Q> type) {
@@ -244,7 +248,10 @@ public final class UomSystemOfUnits implements SystemOfUnits {
         return bySymbol.get(symbol);
     }
 
-    /** Units in list order; units equal to each other (aliases) collapse to the first one listed. */
+    /**
+     * Units in list order; units equal to each other (aliases) collapse to the first one listed. These are the units
+     * the system defines and those of its {@code @extends}-ed systems, not preferred units taken from {@link SI}.
+     */
     @Override
     public Set<? extends Unit<?>> getUnits() {
         return units;

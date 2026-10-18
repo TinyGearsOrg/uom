@@ -4,7 +4,7 @@ A Java library for typed quantities and units of measurement: its own API, with 
 products (`uom`), and a JSR-385 implementation (`javax.measure`, unit-api 2.2) on the same engine (`uom-jsr`). It is in
 development.
 
-Status: milestone 6 done, then the native API (DESIGN DR-21). Both APIs have typed `double` and `BigDecimal` quantities for all 33 quantity types (with typed products in `uom`), eight catalogs with metric and binary prefixes, `quantity.toSystem(system)`, unit and quantity formats with locale-aware numbers, a decimal-preserving parse and a faithful form for offset units, Java serialization of units and quantities and user `.units` files loaded at run time; `uom-jsr` adds the JSR-385 service provider. The systems are `SI` (128 distinct units), `USCustomary` (35), `Imperial` (42), `CGS` (16), `ESU` (22), `EMU` (29), `Gaussian` (26, listed as 27 symbols in [docs/UNITS.md](docs/UNITS.md) because `Fr` and `statC` are the same unit) and `Information` (22: bit and byte with decimal and binary prefixes); `quantity.toSystem(system)` converts to the system's preferred unit for the quantity type. The JSR-385 TCK (`unit-tck` 2.2) passes: 113 of 113 tests; `mvn -q -B clean verify` runs 1334 tests (engine 70, uom 21, uom-jsr 883, codegen 188, tck 113, examples 59). Milestone 7 prepared the release (POM metadata, an inactive `release` profile, the public API pin, the generated unit table, the documentation set, `scripts/verify-release.sh` and a CI workflow on JDK 17, 21 and 25); nothing has been published. Not released.
+Status: milestone 6 done, then the native API (DESIGN DR-21). Both APIs have typed `double` and `BigDecimal` quantities for all 33 quantity types (with typed products in `uom`), eight catalogs with metric and binary prefixes, `quantity.toSystem(system)`, unit and quantity formats with locale-aware numbers, a decimal-preserving parse and a faithful form for offset units, Java serialization of units and quantities and user `.units` files loaded at run time; `uom-jsr` adds the JSR-385 service provider. The systems are `SI` (128 distinct units), `USCustomary` (35), `Imperial` (42), `CGS` (16), `ESU` (22), `EMU` (29), `Gaussian` (26, listed as 27 symbols in [docs/UNITS.md](docs/UNITS.md) because `Fr` and `statC` are the same unit) and `Information` (22: bit and byte with decimal and binary prefixes); `quantity.toSystem(system)` converts to the system's preferred unit for the quantity type. The JSR-385 TCK (`unit-tck` 2.2) passes: 113 of 113 tests; `mvn -q -B clean verify` runs 1336 tests (engine 70, uom 22, uom-jsr 884, codegen 188, tck 113, examples 59). Milestone 7 prepared the release (POM metadata, an inactive `release` profile, the public API pin, the generated unit table, the documentation set, `scripts/verify-release.sh` and a CI workflow on JDK 17, 21 and 25); nothing has been published. Not released.
 
 ## Five minutes
 
@@ -53,7 +53,9 @@ system (`toSystem` throws `UnsupportedOperationException`; convert it with `to(u
 this means that values convert correctly, but the formulas of those systems do not hold: in Gaussian units a charge has
 the dimension g^½·cm^3/2·s^-1 and the B and H fields share a dimension, while here every unit keeps its SI dimension,
 so the gauss and the oersted are not compatible. Systems with base units or dimensions of their own are out of scope
-([docs/DESIGN.md](docs/DESIGN.md), DR-13).
+([docs/DESIGN.md](docs/DESIGN.md), DR-13). A type without a preferred unit of its own (or of a parent system) takes
+SI's, which is then not a member of the system: `USCustomary.SYSTEM` converts a time to `s` but has no unit `s`
+(DR-24).
 
 ```java
 System.out.println(Force.of(1, SI.NEWTON).toSystem(CGS.SYSTEM));                // prints: 100000.0 dyn

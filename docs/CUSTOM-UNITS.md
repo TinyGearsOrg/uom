@@ -303,7 +303,7 @@ Sets the unit `quantity.toSystem(system)` converts to for one of the 33 standard
 `Length` or `MagneticFlux`). The unit must be defined in the user files before this line, be a unit of the system and
 have the type's system unit, not only its dimension: an alternate unit of another atom is refused (`Bq` is not a
 preferred unit for `Frequency`, though `as` (`asType` in `uom-jsr`) views a becquerel quantity as one). One line per type. A type without a line takes the first parent's preferred unit, else
-`SI`'s.
+`SI`'s; a unit taken from `SI` is not a member of the system (`getUnit(String)` and `getUnits()` do not have it).
 
 ```units-error
 @system Pulses

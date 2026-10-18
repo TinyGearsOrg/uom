@@ -414,6 +414,21 @@ behaviour for users is in the linked documents. The full discussion and probe re
 - *See.* `AlternateUnitsTest` (engine and `uom-jsr`), `UserUnitsTest.aFailedLoadLeavesNoAlternateUnits`,
   `QuantityTypesIsolationTest`.
 
+**DR-24 Preferred units taken from SI are not members of a system.**
+- *Decision.* Every system has a preferred unit for all 33 types (its own `@preferred`, else the first extended
+  system's, else SI's), so `toSystem(system)` works for every typed quantity; a unit taken from SI is not a member:
+  `getUnit(String)`/`unit(String)` and `getUnits()`/`units()` do not have it. The Javadoc and the user documents say so.
+- *Why.* JSR-385 defines `getUnits()` as "the units explicitly defined by this system" and `getUnit(Class)` as "the
+  default unit for the specified quantity"; a second listed for US customary is a default, not a definition of that
+  system. Listing the fallback units would add up to 24 SI units (`A`, `mol`, `cd`, ...) to a system's members, and
+  to `docs/UNITS.md` with them.
+- *Rejected.* Fallback units as members. Null for a type without its own or an inherited `@preferred`, as
+  systems-common 2.1's `USCustomary` and `Imperial` do for every type: `Time.toSystem(USCustomary.SYSTEM)` and 155
+  other pairs would throw.
+- *Revisit if.* Users expect `getUnits()` to cover every preferred unit, or a system needs to state that it has no
+  unit for a type.
+- *See.* `SystemsCatalogTest.fallbackPreferredUnitsAreNotMembers`, `NativeFormatTest.fallbackPreferredUnitsAreNotMembers`.
+
 ## 2. Modules and data flow
 
 ```
@@ -746,8 +761,9 @@ statC:statcoulomb    1|2997924580 C           # exact fraction
 - **Preferred layering (D4).** `PREFERRED` has all 33 types: the file's own `@preferred` lines, else those of the first
   extended system (in `@extends` order), else `SI`'s (the fallback relies on `si.units` being first in `Generate.CATALOGS`).
   Layering is by source file; files that are only `@include`d contribute no lines. `SI` itself keeps the factory system unit
-  for a type without `@preferred`. Fallback units are not members: `USCustomary.SYSTEM.getUnit(Time.class)` is `s`, but
-  `getUnit("s")` is null and `getUnits()` lacks `s` (123 (system, type) pairs; SI itself for `m/s^2`, `1` and `m/s`).
+  for a type without `@preferred`. Fallback units are not members (DR-24): `USCustomary.SYSTEM.getUnit(Time.class)` is
+  `s`, but `getUnit("s")` is null and `getUnits()` lacks `s` (156 (system, type) pairs, 33 of them `Information`'s; SI
+  itself for `m/s^2`, `1` and `m/s`).
 - **Run time (F17, F18, D5).** The parser ships in `uom-jsr`. `UomUnitFormat` resolves symbols from the
   generated catalogs and evaluates formulas with `FormulaEvaluator`. User files load at run time, with no global state:
   - `DefinitionParser.parse(source, reader, resolver, known)` looks up symbols the file does not define through
