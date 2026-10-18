@@ -19,8 +19,6 @@ first second implementation. The TCK runs in every CI build (`uom-tck`), so the 
 No version has been released, signed, tagged or uploaded. The release is prepared and is the owner's action
 ([RELEASING.md](RELEASING.md)). Before the first release:
 
-- Confirm the contact and the "best-effort" response wording of `SECURITY.md` (private vulnerability reporting is
-  enabled on `TinyGearsOrg/uom`).
 - Verify the Central Portal namespace `org.tinygears` (DNS TXT record of `tinygears.org`; without the domain the group
   id changes).
 - Create the OpenPGP signing key, publish it to the key servers, and keep a backup and a revocation certificate.
