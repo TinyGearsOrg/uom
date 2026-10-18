@@ -17,9 +17,9 @@ see. Reports are answered on a best-effort basis; a fix is released before the d
 Units and quantities of both APIs are `Serializable` through serialization proxies. A proxy rebuilds the object through the public
 factories, so reading re-checks the invariants and a forged stream that violates them fails with
 `InvalidObjectException`. The steps of a multi-step converter that cannot be checked against its factor and offset
-(a part over 4096 bits) are dropped, so it reads as one step. An alternate atom whose symbol is not registered, even
-after the catalogs are loaded (an atom of a user `.units` file that is not loaded), cannot be checked and reads as an
-unregistered atom. A quantity of `uom` reads back through the factory of its type; one of `uom-jsr` through the factory
+(a part over 4096 bits) are dropped, so it reads as one step. An alternate atom whose symbol is not registered (an atom
+of a user `.units` file that is not loaded) cannot be checked and reads as an unregistered atom; the built-in ones are
+registered from the start. A quantity of `uom` reads back through the factory of its type; one of `uom-jsr` through the factory
 of this implementation's provider, else of the current `ServiceProvider`. Systems and formats are not serializable. The serialized form may change in any release
 before 1.0 (see [docs/DESIGN.md](docs/DESIGN.md), section 8).
 

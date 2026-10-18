@@ -17,6 +17,8 @@ UNPUBLISHED=(uom-codegen uom-tck uom-examples)
 TAIL=${VERIFY_REPO_TAIL:-$HOME/.m2/repository}
 [[ -n ${VERIFY_REPO_TAIL:-} || -d $TAIL ]] || TAIL=
 EXPECTED=${VERIFY_EXPECTED:-$ROOT/scripts/consumer/expected-output.txt}
+# the consumer project; the self-test passes a modified copy
+CONSUMER=${VERIFY_CONSUMER:-$ROOT/scripts/consumer}
 
 fail() { echo "verify-release: FAIL: $*" >&2; exit 1; }
 say() { echo "verify-release: $*"; }
@@ -186,7 +188,7 @@ MAIN=org.tinygears.uom.examples.Examples
 consumer() { # <repo>
   local repo=$1 v c=$tmp/consumer cp got
   v=$(version_of "$repo")
-  rm -rf "$c" && cp -r "$ROOT/scripts/consumer" "$c"
+  rm -rf "$c" && cp -r "$CONSUMER" "$c"
   mkdir -p "$c/src/main/java/org/tinygears/uom/examples"
   cp "$ROOT"/uom-examples/src/main/java/org/tinygears/uom/examples/*.java "$c/src/main/java/org/tinygears/uom/examples/"
   # module-info.java present: Maven compiles on the module path
@@ -256,15 +258,19 @@ self_test() {
     "consumer-output|consumer|expected()|consumer (class path): output differs"
     "module-descriptor|check|swap(j('uom') + '.jar', 'module-info.class', j('uom-jsr') + '.jar')|uom-$v.jar: jar --describe-module gives [org.tinygears.uom.jsr@$v"
     "resolved-from-tail|consumer|to_tail('uom')|consumer: uom not resolved from"
+    "consumer-dependency|consumer|sub(j('uom-jsr') + '.pom', '<dependencies>', '<dependencies><dependency><groupId>org.slf4j</groupId><artifactId>slf4j-api</artifactId><version>2.0.16</version></dependency>')|consumer: dependencies are [slf4j-api-2.0.16.jar"
+    "jlink-modules|consumer|requires('java.logging')|jlink image modules are [java.base java.logging"
   )
   local c mode
   for c in "${cases[@]}"; do
     IFS='|' read -r name mode mutation expect <<< "$c"
-    rm -rf "$tmp/copy" "$tmp/expected" "$tmp/tail" && cp -r "$base" "$tmp/copy" && cp "$EXPECTED" "$tmp/expected"
+    rm -rf "$tmp/copy" "$tmp/expected" "$tmp/tail" "$tmp/consumer-src" && cp -r "$base" "$tmp/copy" \
+      && cp "$EXPECTED" "$tmp/expected" && cp -r "$CONSUMER" "$tmp/consumer-src"
     if [[ -n $mutation ]]; then
-      python3 - "$tmp/copy" "$v" "$tmp/expected" <<EOF
+      python3 - "$tmp/copy" "$v" "$tmp/expected" "$tmp/consumer-src" <<EOF
 import os, sys, zipfile, pathlib
 root, v, expected_file = pathlib.Path(sys.argv[1]), sys.argv[2], pathlib.Path(sys.argv[3])
+consumer_dir = pathlib.Path(sys.argv[4])
 def j(a): return 'org/tinygears/%s/%s/%s-%s' % (a, v, a, v)
 def rewrite(f, fn):
     p = root / f; entries = []
@@ -293,6 +299,9 @@ def sub(f, old, new):
     if n == t: sys.exit("self-test: mutation did not change " + f)
     p.write_text(n)
 def expected(): expected_file.write_text(expected_file.read_text().replace('basics: ', 'basics: x', 1))
+def requires(m):
+    p = consumer_dir / 'src/main/java/module-info.java'; t = p.read_text()
+    p.write_text(t.replace('requires org.tinygears.uom.jsr;', 'requires org.tinygears.uom.jsr;\n    requires %s;' % m, 1))
 $mutation
 EOF
     fi
@@ -301,7 +310,7 @@ EOF
       check) out=$(bash "$SCRIPT" --check "$tmp/copy" 2>&1) ;;
       compare) out=$(bash "$SCRIPT" --compare "$base" "$tmp/copy" 2>&1) ;;
       # the tail holds what to_tail moved out of the copy, then the usual tail
-      consumer) out=$(VERIFY_EXPECTED=$tmp/expected VERIFY_REPO_TAIL=$tmp/tail${TAIL:+,$TAIL} \
+      consumer) out=$(VERIFY_EXPECTED=$tmp/expected VERIFY_CONSUMER=$tmp/consumer-src VERIFY_REPO_TAIL=$tmp/tail${TAIL:+,$TAIL} \
                       bash "$SCRIPT" ${REQUIRE_JLINK:+--require-jlink} --consumer "$tmp/copy" 2>&1) ;;
     esac
     status=$?

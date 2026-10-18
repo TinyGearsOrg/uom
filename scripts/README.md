@@ -5,7 +5,7 @@ Release checks and the commit-message check; none of them signs, deploys, tags o
 | Script | Checks |
 |---|---|
 | `check-pom.sh [--self-test]` | POM metadata and the release profile against the Maven Central rules, including the enforcer execution that fails `-Prelease deploy` on a SNAPSHOT |
-| `check-javadoc.sh` | no javadoc warnings in the published modules (doclint all) |
+| `check-javadoc.sh` | no javadoc warnings in the published modules (doclint all); it reruns javadoc with `-Xmaxwarns 100000`, as maven-javadoc-plugin 3.12.0 misses the count when that is raised, and counts the `file:line: warning:` lines |
 | `verify-release.sh [--jdk <JDK home>] [--require-jlink] [--self-test]` | the release artifacts and a consumer project, below |
 | `check-workflows.sh [--self-test]` | `.github/workflows/ci.yml` (the only workflow) and `.github/dependabot.yml`, below |
 | `check-commit-msg.sh <file> \| --self-test` | the commit subject starts with a conventional prefix of `CONTRIBUTING.md` (the commit-msg hook); merge, revert and fixup subjects pass |
@@ -41,7 +41,7 @@ plugins are cached), then:
 the JDK 21 run is still to be done. `--self-test` builds once and asserts that each check fails on a mutated copy
 (missing licence, stray file, test class, manifest entry, wrong module descriptor, missing javadoc jar, extra
 artifact, `-SNAPSHOT` dependency, a differing byte, a wrong consumer output, `uom` resolved from outside the
-temporary repository). Exit status: 0 passed, 1 a check failed (with the reason).
+temporary repository, an extra dependency of the consumer, an extra module in the `jlink` image). Exit status: 0 passed, 1 a check failed (with the reason).
 
 ## check-workflows.sh
 

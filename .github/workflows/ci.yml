@@ -65,5 +65,8 @@ jobs:
         with:
           distribution: temurin
           java-version: 21
+      - run: bash scripts/check-pom.sh
+      - run: bash scripts/check-javadoc.sh
+      - run: bash scripts/check-workflows.sh
       # Temurin ships jmods, so jlink must not be skipped; no Maven cache: the script uses temporary repositories
       - run: bash scripts/verify-release.sh --require-jlink

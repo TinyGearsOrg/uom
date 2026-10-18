@@ -64,6 +64,7 @@
     <project.build.outputTimestamp>2026-10-13T00:00:00Z</project.build.outputTimestamp>
     <!-- Central upload switch of the published modules; the unpublished ones set skipPublishing literally. -->
     <central.skipPublishing>false</central.skipPublishing>
+    <!-- also the version of surefire-testng (uom-tck), which has no 3.6 release yet -->
     <surefire.version>3.5.6</surefire.version>
   </properties>
 
@@ -338,6 +339,8 @@
             <configuration>
               <publishingServerId>central</publishingServerId>
               <autoPublish>false</autoPublish>
+              <!-- deprecated in 0.11.0 (a warning per module); skipPublishing only filters artifacts, the upload
+                   still runs on the last module: re-check both on an update of the plugin -->
               <waitForPublishCompletion>false</waitForPublishCompletion>
               <ignorePublishedComponents>false</ignorePublishedComponents>
               <failOnBuildFailure>true</failOnBuildFailure>
