@@ -55,5 +55,5 @@ containing deploy, `-Prelease`, publish, central, gpg, `git push`/`git tag` or `
 (`@<40 hex digits> # v7.0.1`, the form Dependabot keeps current), checkout keeps credentials, setup-java is not Temurin or sets
 a Maven cache outside `build`; the run commands differ from the CI block of `CONTRIBUTING.md`; dependabot does not
 update Maven (the root and `scripts/consumer`) and GitHub Actions weekly, grouped, with a PR limit and a cooldown of at
-least 7 days. `--self-test` asserts that each of these mutations is
+least 7 days, and ignores the Eclipse formatter jars of `uom-codegen` (pinned to the Spotless lockfile). `--self-test` asserts that each of these mutations is
 detected.

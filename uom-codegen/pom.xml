@@ -40,7 +40,7 @@
     <!-- The Eclipse formatter that formats the generated sources (JavaFormatter): the jars it needs from the lockfile
          of the Spotless Eclipse step (spotless-lib-extra, eclipse_jdt_formatter/v4.40.lockfile), without their own
          dependencies. Keep the versions in step with <eclipse><version> in the parent POM: spotless:check fails on
-         generated files that the two format differently. -->
+         generated files that the two format differently. Pinned: .github/dependabot.yml ignores org.eclipse.*. -->
     <dependency>
       <groupId>org.eclipse.jdt</groupId>
       <artifactId>org.eclipse.jdt.core</artifactId>

@@ -3,7 +3,7 @@
 Indriya is the reference implementation of JSR-385; this page concerns `uom-jsr`, the JSR-385 implementation of uom.
 Generic code that uses only the `javax.measure` API runs on both,
 but the two answer some questions differently. This page lists the differences found by running the same cases on uom
-and on Indriya 2.2 on one class path. Every example below runs in the build (`DocsSnippetsTest`, with Indriya as a
+and on Indriya 2.2.4 on one class path. Every example below runs in the build (`DocsSnippetsTest`, with Indriya as a
 test dependency) and prints both results, so the page breaks when either library changes.
 
 Most differences are deliberate and follow from the requirements of uom ([REQUIREMENTS.md](REQUIREMENTS.md): F5, F20,
@@ -55,15 +55,14 @@ System.out.println(Units.METRE.multiply(1000) + " " + Units.METRE.multiply(0.304
 ### Exponents and special characters
 
 The uom format writes ASCII exponents by default (`m/s^2`); `UomUnitFormat.withSuperscripts(true)` writes `m/s²`. Indriya
-writes superscripts, and some units as single compatibility characters: the cubic metre as `㎥` (U+33A5) and degree
-Celsius as `℃` (U+2103). Indriya writes the micro prefix as the Greek letter mu `μ` (U+03BC); uom uses the micro sign
+writes superscripts, and degree Celsius as the compatibility character `℃` (U+2103). Indriya writes the micro prefix as the Greek letter mu `μ` (U+03BC); uom uses the micro sign
 `µ` (U+00B5) that `MetricPrefix.MICRO` defines.
 
 ```java jsr
 import tech.units.indriya.unit.Units;
 System.out.println(SI.METRE.divide(SI.SECOND.pow(2)) + " " + Units.METRE.divide(Units.SECOND.pow(2))); // prints: m/s^2 m/s²
-System.out.println(SI.CUBIC_METRE + " " + Units.CUBIC_METRE);                         // prints: m³ ㎥
-System.out.println(SI.METRE.pow(3) + " " + Units.METRE.pow(3));                       // prints: m^3 ㎥
+System.out.println(SI.CUBIC_METRE + " " + Units.CUBIC_METRE);                         // prints: m³ m³
+System.out.println(SI.METRE.pow(3) + " " + Units.METRE.pow(3));                       // prints: m^3 m³
 System.out.println(SI.DEGREE_CELSIUS + " " + Units.CELSIUS);                          // prints: °C ℃
 System.out.println(SI.METRE.prefix(MetricPrefix.MICRO) + " " + MetricPrefix.MICRO(Units.METRE)); // prints: µm μm
 ```
@@ -244,7 +243,7 @@ Indriya offers several named formats (`SIMPLE_ASCII`, `EBNF`, `LOCAL`, `SIMPLE_D
 
 ## Only in Indriya
 
-Indriya 2.2 goes beyond JSR-385 in several places that uom does not cover, by decision for 1.0
+Indriya 2.2.4 goes beyond JSR-385 in several places that uom does not cover, by decision for 1.0
 ([REQUIREMENTS.md](REQUIREMENTS.md), section 2):
 
 | Indriya | uom |

@@ -60,6 +60,7 @@ self_test() {
     "dependabot-groups|drop(DB, '    groups:', 'patterns: [\"*\"]\n')|dependabot maven: needs directories ['/', '/scripts/consumer'], groups and open-pull-requests-limit"
     "dependabot-consumer|sub(DB, ', \"/scripts/consumer\"', '')|dependabot maven: needs directories ['/', '/scripts/consumer']"
     "dependabot-interval|sub(DB, 'interval: weekly', 'interval: daily')|dependabot maven: interval is 'daily', expected 'weekly'"
+    "dependabot-eclipse|sub(DB, '      - dependency-name: \"org.eclipse.platform:*\"\n', '')|dependabot maven: must ignore ['org.eclipse.jdt:*', 'org.eclipse.platform:*']"
     "dependabot-cooldown|sub(DB, 'default-days: 7', 'default-days: 3')|dependabot maven: cooldown default-days is 3, expected at least 7"
   )
   for c in "${cases[@]}"; do
@@ -215,6 +216,11 @@ for eco, u in sorted(updates.items()):
     interval = (u.get('schedule') or {}).get('interval')
     if interval != 'weekly':
         fail("dependabot %s: interval is '%s', expected 'weekly'" % (eco, interval))
+    # the Eclipse formatter jars follow the Spotless lockfile, never a version of their own
+    if eco == 'maven':
+        ignored = sorted(i.get('dependency-name') for i in u.get('ignore') or [])
+        if ignored != ['org.eclipse.jdt:*', 'org.eclipse.platform:*']:
+            fail("dependabot maven: must ignore ['org.eclipse.jdt:*', 'org.eclipse.platform:*'], ignores %s" % ignored)
     days = (u.get('cooldown') or {}).get('default-days')
     if not isinstance(days, int) or days < 7:
         fail("dependabot %s: cooldown default-days is %s, expected at least 7" % (eco, days))

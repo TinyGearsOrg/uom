@@ -20,8 +20,7 @@ first second implementation. Re-run the TCK in CI and publish the result rather 
 - `check-pom.sh`, `check-javadoc.sh` and `check-workflows.sh` are not CI steps (`check-workflows.sh` needs PyYAML, and
   adding it changes the `CONTRIBUTING.md` block it compares). `verify-release.sh` runs `check-pom.sh` on the installed
   POMs.
-- Plugin updates were deferred for stability (compiler 3.13.0, surefire 3.2.5, exec 3.2.0; dependabot proposes newer ones).
-  `waitForPublishCompletion` is deprecated in central-publishing-maven-plugin 0.11.0 and prints a warning per module;
+- Surefire stays on 3.5.x while `surefire-testng` has no 3.6 release. `waitForPublishCompletion` is deprecated in central-publishing-maven-plugin 0.11.0 and prints a warning per module;
   `skipPublishing` only filters artifacts and the upload mojo still runs on the last module; re-check on a plugin update.
 - `verify-release.sh`: no self-test mutation for the consumer's resolved dependency set or the `jlink` stage; it builds
   twice and downloads the dependencies twice on a runner without `~/.m2`; `scripts/consumer/expected-output.txt`

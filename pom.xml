@@ -64,14 +64,14 @@
     <project.build.outputTimestamp>2026-10-13T00:00:00Z</project.build.outputTimestamp>
     <!-- Central upload switch of the published modules; the unpublished ones set skipPublishing literally. -->
     <central.skipPublishing>false</central.skipPublishing>
-    <surefire.version>3.2.5</surefire.version>
+    <surefire.version>3.5.6</surefire.version>
   </properties>
 
   <dependencies>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
-      <version>5.10.2</version>
+      <version>6.1.3</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
@@ -102,7 +102,7 @@
         </plugin>
         <plugin>
           <artifactId>maven-compiler-plugin</artifactId>
-          <version>3.13.0</version>
+          <version>3.16.0</version>
           <configuration>
             <!-- every lint warning fails the build -->
             <showWarnings>true</showWarnings>
@@ -176,7 +176,7 @@
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>exec-maven-plugin</artifactId>
-          <version>3.2.0</version>
+          <version>3.6.4</version>
         </plugin>
         <plugin>
           <groupId>com.diffplug.spotless</groupId>
