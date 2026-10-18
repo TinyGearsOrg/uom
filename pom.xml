@@ -7,7 +7,7 @@
 
   <groupId>org.tinygears</groupId>
   <artifactId>uom-parent</artifactId>
-  <version>0.1.0</version>
+  <version>0.2.0-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>uom-parent</name>
   <description>Parent POM of uom, a Java library of typed quantities and units of measurement implementing JSR-385.</description>
@@ -61,7 +61,7 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <!-- Reproducible-build timestamp of the archive entries. At each release, set it in the version-change
          commit to the release date or to the committer date of the previous commit (git log -1, format %cI). -->
-    <project.build.outputTimestamp>2026-10-18T00:00:00Z</project.build.outputTimestamp>
+    <project.build.outputTimestamp>2026-10-18T19:37:46Z</project.build.outputTimestamp>
     <!-- Central upload switch of the published modules; the unpublished ones set skipPublishing literally. -->
     <central.skipPublishing>false</central.skipPublishing>
     <!-- also the version of surefire-testng (uom-tck), which has no 3.6 release yet -->
