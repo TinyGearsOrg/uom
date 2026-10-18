@@ -194,7 +194,7 @@ consumer() { # <repo>
     -Dmdep.outputFile="$c/classpath.txt" > "$tmp/consumer.log" 2>&1 \
     || { tail -50 "$tmp/consumer.log" >&2; fail "consumer: mvn package failed (log above)"; }
   cp=$(cat "$c/classpath.txt")
-  got=$(tr ':' '\n' <<< "$cp" | xargs -n1 basename | sort)
+  got=$(tr ':' '\n' <<< "$cp" | sed 's|.*/||' | sort)
   [[ $got == "$(printf '%s\n' "uom-$v.jar" "uom-jsr-$v.jar" "uom-engine-$v.jar" unit-api-2.2.jar | sort)" ]] \
     || fail "consumer: dependencies are [$(oneline "$got")], expected uom, uom-jsr, uom-engine, unit-api 2.2"
   for a in uom uom-jsr uom-engine; do

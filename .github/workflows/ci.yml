@@ -3,8 +3,10 @@
 # The run commands equal the CI block of CONTRIBUTING.md.
 name: CI
 
+# pushes to ng; other branches run through their pull request, once
 on:
   push:
+    branches: [ng]
   pull_request:
 
 permissions:
@@ -12,7 +14,8 @@ permissions:
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  # a superseded pull-request run is cancelled; every commit on ng gets a complete run
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build:

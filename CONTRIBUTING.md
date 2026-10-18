@@ -8,7 +8,7 @@ Java 17 or later and Maven 3.9 or later (the enforcer checks both). From the rep
 mvn -q -B clean verify
 ```
 
-This builds the five modules and runs every test, the JSR-385 TCK included. The modules are described in
+This builds the six modules and runs every test, the JSR-385 TCK included. The modules are described in
 [README.md](README.md); the design is in [docs/DESIGN.md](docs/DESIGN.md).
 
 AI coding agents follow [AGENTS.md](AGENTS.md) (`CLAUDE.md` links to it).
@@ -67,6 +67,9 @@ skip them.
   method) with a comment that says why.
 - `ApiSurfaceTest` pins the public API to `docs/api/public-api.txt`. A deliberate API change rewrites the file with
   `mvn -B verify -Duom.writeApi`, and its diff is part of the change ([docs/API.md](docs/API.md)).
+- `mvn test -pl <module>` without `-am` takes the other modules from `~/.m2`, which may be stale: `ApiSurfaceTest`
+  (in `uom-jsr`, for `uom-engine`, `uom` and `uom-jsr`) then compares an old `uom` or `uom-engine` jar. Add `-am`, or
+  run `mvn -q -B install -DskipTests` first.
 - `DocsSnippetsTest` runs the `units`, `units-error` and `java` blocks of `README.md`, `docs/CUSTOM-UNITS.md`,
   `docs/OFFSET-UNITS.md`, `docs/PROVIDERS.md`, `docs/INDRIYA.md` and `SECURITY.md`: a `java` block compiles against
   `uom`, a `java jsr` block against `uom-jsr`, and a `units` block loads with both, which must agree. Keep them true

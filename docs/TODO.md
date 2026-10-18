@@ -49,28 +49,19 @@ first second implementation. Re-run the TCK in CI and publish the result rather 
 ## 31. Build and CI tooling
 
 **Status:** open.
-- Add `slf4j-nop` at test scope in `uom-tck`: the TCK run prints "SLF4J: No SLF4J providers were found" (no slf4j entry in
-  the POM today). On JDK 21 the TCK also prints "No output directory specified" and leaves an empty root `target/`.
-- CI owner decisions: `on: push` plus `pull_request` runs a PR from a branch of this repository twice (a
-  `main`-only push filter halves it); `cancel-in-progress: true` also cancels superseded runs on `main` (use
-  `${{ github.event_name == 'pull_request' }}`); job-level `permissions: {contents: read}` needs `check-workflows.sh`
-  changed, which now forbids it.
 - `check-pom.sh`, `check-javadoc.sh` and `check-workflows.sh` are not CI steps (`check-workflows.sh` needs PyYAML, and
   adding it changes the `CONTRIBUTING.md` block it compares). `verify-release.sh` runs `check-pom.sh` on the installed
   POMs.
 - Plugin updates were deferred for stability (compiler 3.13.0, surefire 3.2.5, exec 3.2.0; dependabot proposes newer ones).
   `waitForPublishCompletion` is deprecated in central-publishing-maven-plugin 0.11.0 and prints a warning per module;
   `skipPublishing` only filters artifacts and the upload mojo still runs on the last module; re-check on a plugin update.
-  A non-quiet build warns "JAR will be empty" for `uom-tck`.
-- `verify-release.sh`: no self-test mutation for the consumer's resolved dependency set or the `jlink` stage;
-  `xargs -n1 basename` splits on whitespace (a repository path with spaces breaks it); it builds twice and downloads the
-  dependencies twice on a runner without `~/.m2`; `scripts/consumer/expected-output.txt` duplicates what `ExamplesTest` pins.
-- `mvn test -pl uom` without `-am` reads `uom-jsr` from `~/.m2`, so `ApiSurfaceTest` can compare a stale jar (same for
-  `-pl uom-codegen`): say so in `CONTRIBUTING.md`. The API pin strings were generated on JDK 25 and pass on Temurin 21.
+- `verify-release.sh`: no self-test mutation for the consumer's resolved dependency set or the `jlink` stage; it builds
+  twice and downloads the dependencies twice on a runner without `~/.m2`; `scripts/consumer/expected-output.txt`
+  duplicates what `ExamplesTest` pins.
 - `maven-javadoc-plugin` 3.12.0 misses the warning count when `-Xmaxwarns` is raised, so only `check-javadoc.sh` raises it;
   it counts only `file:line: warning:` lines.
 
-**Needed by:** the CI decisions before the first push of the workflow; the rest nothing.
+**Needed by:** nothing.
 
 ## Release readiness
 
