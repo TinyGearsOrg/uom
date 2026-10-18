@@ -238,3 +238,19 @@ System.out.println(indriya.parse("m*s^-1"));                                    
 Indriya offers several named formats (`SIMPLE_ASCII`, `EBNF`, `LOCAL`, `SIMPLE_DEFAULT` for units; `EBNF`, `LOCAL`,
 `SIMPLE`, `NUMBERDELIMITER` for quantities); uom has one, `default`, for each, configured through `UomUnitFormat` and
 `UomQuantityFormat` (`withSuperscripts`, `withLocale`, `withDecimals`).
+
+## Only in Indriya
+
+Indriya 2.2 goes beyond JSR-385 in several places that uom does not cover, by decision for 1.0
+([REQUIREMENTS.md](REQUIREMENTS.md), section 2):
+
+| Indriya | uom |
+|---|---|
+| Any `Number` as a value (`NumberSystem`, `RationalNumber`) | `double` and `BigDecimal` |
+| Mixed quantities such as `1 ft 6 in` (`MixedQuantity`, `MixedRadix`) | none |
+| Ranges of quantities (`QuantityRange`) | none |
+| Logarithmic and exponential converters (`LogConverter`, `ExpConverter`) | affine converters only |
+| Annotated units, `m{annotation}` (`AnnotatedUnit`) | none |
+| `EBNFUnitFormat`, and `LocalUnitFormat` with symbols per locale | one standard format with labels; locale-aware numbers |
+| Stream helpers (`QuantityStreams`, `QuantitySummaryStatistics`) | none |
+| Quantity types of any interface | the 33 standard types; poise, stokes and oersted are untyped |

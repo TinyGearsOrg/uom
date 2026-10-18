@@ -54,9 +54,12 @@ dynamic proxies in the picture.
 
 - User-defined quantity types. The quantity types are the built-in set. Users can still add
   units of those types (F18).
-- Typed quantity products and quotients (`Length / Time` returning `Speed`, `Length * Length`
-  returning `Area`). JSR-385 `multiply` and `divide` return `Quantity<?>`; narrowing is by
-  `asType(Class)`. Declared relations can be added in a later release.
+- Typed quantity products and quotients in `uom-jsr` (`Length / Time` returning `Speed`): JSR-385 `multiply` and
+  `divide` return `Quantity<?>`, narrowed by `asType(Class)`. The native API `uom` has them (DESIGN DR-21).
+- Quantity types beyond the 33 standard ones: poise, stokes and oersted stay untyped.
+- What Indriya offers beyond JSR-385: number types other than `double` and `BigDecimal`, mixed quantities, quantity
+  ranges, logarithmic and exponential converters, annotated units, the EBNF and locale unit formats, quantity
+  streams ([INDRIYA.md](INDRIYA.md), "Only in Indriya").
 - Systems with base units or dimensions of their own: expressing a quantity in a system's base units (`g·cm/s` in
   CGS), and modelling ESU/EMU/Gaussian as distinct dimension systems. These belong in a separate library on top of
   `uom-jsr` (DESIGN DR-13).

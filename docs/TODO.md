@@ -3,7 +3,7 @@
 Open work only. The item numbers are stable IDs: a gap is a finished item; the decisions, with their rationale and when
 to revisit them, are in [DESIGN.md](DESIGN.md) section 1 (DR-01 to DR-24); the last version of this file with the full
 discussion is `git show 5d734d3:docs/TODO.md`. The groups: gaps against the JSR-385 reference implementation Indriya
-(10, 13, 14), open defects and hardening carried over from the milestone reviews (21 to 32), then the steps before the
+(10, 14), open defects and hardening carried over from the milestone reviews (21 to 32), then the steps before the
 first release ("Release readiness"). Each item says under "Needed by" what, if anything, it blocks.
 
 ## 10. Behaviour comparison with Indriya
@@ -23,20 +23,6 @@ Symbols that neither library parses (`bar`, `kWh`, `atm`, `mmHg`, `Å`, and `°`
 `arcmin`, `arcsec`) belong to item 13.
 
 **Needed by:** the three decisions before 1.0.
-
-## 13. Scope gaps against Indriya
-
-**Status:** known, deferred or unchecked. Items marked "unchecked" were read from Indriya's README only.
-- User-defined quantity types: out of scope for 1.0 (REQUIREMENTS F14); Indriya supports them.
-- Typed quantity products and quotients (`Length` / `Time` returning `Speed`): out of scope; `multiply` and `divide` return
-  untyped results and need `asType` or `X.from` (DR-10).
-- Closed set of 33 generated quantity types.
-- Unit sets and formats beyond the eight catalogs and the standard format (for example UCUM, and unit sets of the separate
-  unitsofmeasurement projects): unchecked.
-- Poise, stokes and oersted are untyped `UomUnit<?>` constants; extra quantity types (`DynamicViscosity`,
-  `KinematicViscosity`, `MagneticFieldStrength`) would type them and extend `data/quantity-types.txt`.
-
-**Needed by:** decide which gaps matter for 1.0 and say so in the README.
 
 ## 14. Positioning and community
 

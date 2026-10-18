@@ -217,6 +217,12 @@ Length d = format.parse("2 league").as(Length.class);
 d.toSystem(medieval);                                  // 48.0 furlong
 ```
 
+## Not included
+
+uom implements JSR-385 and the native API, not everything Indriya offers beyond the standard. Values are `double` or
+`BigDecimal`; there are no mixed quantities (`1 ft 6 in`), quantity ranges, logarithmic units, annotated units, unit symbols
+per locale or quantity types other than the 33 standard ones. [docs/INDRIYA.md](docs/INDRIYA.md) lists them.
+
 ## Generated sources
 
 The quantity types and catalogs of both APIs (`uom/src/main/java/org/tinygears/uom/quantity` and `.../systems`,
