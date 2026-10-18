@@ -1,9 +1,9 @@
 # A native API next to the JSR-385 implementation
 
-**Status:** decided, in progress: complete the split ([DESIGN.md](DESIGN.md) DR-21; TODO item 33). Section 1
+**Status:** done: the split is complete and merged into `ng` ([DESIGN.md](DESIGN.md) DR-21). Section 1
 describes the JSR-385 constraint, sections 2 to 6 the proposal the prototype tested.
 
-**Progress** (branch `native-prototype`): the prototype (steps 1 and 2) is done and the split decided (DR-21);
+**Progress**: the prototype (steps 1 and 2) is done and the split decided (DR-21);
 completing it runs in five stages: (1) the 33 types generated with typed products, (2) the catalogs, (3) offset units,
 (4) formats and systems, (5) the renames to `uom` and `uom-jsr`, docs, examples and the TCK. All five stages are done; this document keeps the module and package names of the time it describes (see
 "Stage 5a" below for the mapping).

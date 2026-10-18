@@ -98,7 +98,7 @@ runtime dependency, and on the module path `requires org.tinygears.uom.jsr;` (wh
 - [docs/RELEASING.md](docs/RELEASING.md): the release procedure (for the maintainer).
 - [docs/REQUIREMENTS.md](docs/REQUIREMENTS.md), [docs/DESIGN.md](docs/DESIGN.md) and [docs/TODO.md](docs/TODO.md):
   requirements, design and open decisions.
-- [docs/NATIVE-API.md](docs/NATIVE-API.md): the native API next to the JSR-385 implementation (decided, DESIGN DR-21).
+- [docs/NATIVE-API.md](docs/NATIVE-API.md): the native API next to the JSR-385 implementation (done, DESIGN DR-21).
 - [LICENSE](LICENSE): Apache License 2.0.
 
 ## Modules

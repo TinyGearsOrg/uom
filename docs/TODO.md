@@ -1,11 +1,10 @@
 # TODO
 
 Open work only. The item numbers are stable IDs: a gap is a finished item; the decisions, with their rationale and when
-to revisit them, are in [DESIGN.md](DESIGN.md) section 1 (DR-01 to DR-14); the last version of this file with the full
+to revisit them, are in [DESIGN.md](DESIGN.md) section 1 (DR-01 to DR-24); the last version of this file with the full
 discussion is `git show 5d734d3:docs/TODO.md`. The groups: gaps against the JSR-385 reference implementation Indriya
-(10, 13, 14), open defects and hardening carried over from the milestone reviews (21 to 32), the native API (33), then
-the steps before the first release ("Release readiness"). Each item says under "Needed by" what, if anything, it
-blocks.
+(10, 13, 14), open defects and hardening carried over from the milestone reviews (21 to 32), then the steps before the
+first release ("Release readiness"). Each item says under "Needed by" what, if anything, it blocks.
 
 ## 10. Behaviour comparison with Indriya
 
@@ -72,17 +71,6 @@ first second implementation. Re-run the TCK in CI and publish the result rather 
   it counts only `file:line: warning:` lines.
 
 **Needed by:** the CI decisions before the first push of the workflow; the rest nothing.
-
-## 33. A native API next to the JSR-385 implementation
-
-**Status:** decided (DESIGN DR-21), in progress on branch `native-prototype`: complete the split, the native API as
-`uom` and the JSR-385 implementation as `uom-jsr`. Done: the engine with the shared arithmetic, the 33 generated native
-types with typed products, the native catalogs, offset units, the bridge, and the formats, systems, `toSystem`,
-run-time `.units` files and serialization on the engine's shared format code, the renames (`uom` is the native API,
-`uom-jsr` the JSR-385 implementation with the bridge, the TCK runs on `uom-jsr`), and the user documents and examples,
-which present `uom` first ([NATIVE-API.md](NATIVE-API.md), "Progress"). Open: merging `native-prototype` into `ng`.
-
-**Needed by:** before 1.0 (module boundaries and the public API).
 
 ## Release readiness
 
