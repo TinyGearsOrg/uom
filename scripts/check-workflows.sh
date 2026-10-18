@@ -2,8 +2,8 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 # Statically checks the GitHub configuration (milestone 7, D6): the CI workflow builds and checks only (no deploy,
-# no secrets, read-only token, official actions pinned to a commit hash) and runs the commands of CONTRIBUTING.md;
-# dependabot.yml.
+# no secrets, read-only token, actions pinned to a commit hash) and runs the commands of CONTRIBUTING.md; the release
+# workflow only creates the GitHub release of a version tag, with the job token; dependabot.yml.
 # Usage: scripts/check-workflows.sh [--self-test]
 # Requires: bash, python3 with PyYAML.
 # Exits 1 with a message on the first failed check; --self-test mutates copies and asserts each is detected.
@@ -49,7 +49,16 @@ self_test() {
     "prek-tag|sub(CI, 'j178/prek-action@1382ad72dea72f9d53832f2bcb65b3e87a947204 # v3.0.1', 'j178/prek-action@v3')|action 'j178/prek-action@v3' is not an allowed action pinned to a commit hash"
     "no-javadoc-check|sub(CI, '      - run: bash scripts/check-javadoc.sh\n', '')|the run commands differ from the CI block of CONTRIBUTING.md"
     "contributing-drift|sub('CONTRIBUTING.md', 'mvn -B verify\n', 'mvn -B install\n')|the run commands differ from the CI block of CONTRIBUTING.md"
-    "extra-workflow|add('.github/workflows/release.yml', 'name: release\n')|workflow files are ['ci.yml', 'release.yml'], expected ['ci.yml']"
+    "extra-workflow|add('.github/workflows/deploy.yml', 'name: deploy\n')|workflow files are ['ci.yml', 'deploy.yml', 'release.yml'], expected ['ci.yml', 'release.yml']"
+    "release-trigger|sub(RL, \"tags: ['v[0-9]+.[0-9]+.[0-9]+']\", 'branches: [main]')|release.yml: triggers are {'push': {'branches': ['main']}}"
+    "release-top-write|sub(RL, 'permissions:\n  contents: read', 'permissions:\n  contents: write')|release.yml: permissions are {'contents': 'write'}, expected {'contents': 'read'}"
+    "release-job-write|sub(RL, '    permissions:\n      contents: write', '    permissions: write-all')|release.yml: job github-release permissions are write-all, expected {'contents': 'write'}"
+    "release-fork|sub(RL, \"    if: github.repository == 'TinyGearsOrg/uom'\n\", '')|release.yml: job github-release must run only in TinyGearsOrg/uom"
+    "release-secret|sub(RL, 'GH_TOKEN: \${{ github.token }}', 'GH_TOKEN: \${{ secrets.PAT }}')|release.yml references secrets"
+    "release-deploy|sub(RL, 'run: gh release create', 'run: mvn -B -Prelease deploy && gh release create')|release.yml: job github-release runs a forbidden command"
+    "release-injection|sub(RL, 'notes \"\${TAG#v}\"', 'notes \"\${{ github.ref_name }}\"')|release.yml: a run command expands an expression"
+    "release-commands|sub(RL, ' --verify-tag', '')|release.yml: the run commands are"
+    "release-action|sub(RL, 'actions/checkout@', 'someone/checkout@')|release.yml: action 'someone/checkout@"
     "yaml-error|sub(CI, 'permissions:', 'permissions: [')|ci.yml does not parse"
     "dependabot-ecosystem|drop(DB, '  - package-ecosystem: github-actions', 'patterns: [\"*\"]\n')|dependabot ecosystems are ['maven'], expected ['github-actions', 'maven']"
     "untracked-drift|sub(CI, ' && test -z', ' ; test -z')|the run commands differ from the CI block of CONTRIBUTING.md"
@@ -73,7 +82,7 @@ self_test() {
       python3 - "$tmp/copy" <<EOF
 import sys, pathlib
 root = pathlib.Path(sys.argv[1])
-CI, DB = '.github/workflows/ci.yml', '.github/dependabot.yml'
+CI, DB, RL = '.github/workflows/ci.yml', '.github/dependabot.yml', '.github/workflows/release.yml'
 def edit(f, fn):
     p = root / f; t = p.read_text(); n = fn(t)
     if n == t: sys.exit("self-test: mutation did not change " + f)
@@ -118,8 +127,8 @@ def fail(msg):
 root = pathlib.Path(sys.argv[1])
 wf_dir = root / '.github/workflows'
 files = sorted(p.name for p in wf_dir.iterdir()) if wf_dir.is_dir() else []
-if files != ['ci.yml']:
-    fail("workflow files are %s, expected ['ci.yml'] (no release or deploy workflow)" % files)
+if files != ['ci.yml', 'release.yml']:
+    fail("workflow files are %s, expected ['ci.yml', 'release.yml'] (no deploy workflow)" % files)
 
 def load(rel):
     p = root / rel
@@ -211,6 +220,56 @@ documented = [l.strip() for l in m.group(1).splitlines() if l.strip()] if m else
 if commands != documented:
     fail("the run commands differ from the CI block of CONTRIBUTING.md:\n  ci.yml:       %s\n  CONTRIBUTING: %s"
          % (commands, documented))
+
+# release.yml creates the GitHub release of a pushed version tag, with the job token only and nothing built or uploaded
+text, rl = load('.github/workflows/release.yml')
+if not isinstance(rl, dict):
+    fail("release.yml is not a mapping")
+if re.search(r'\bsecrets\b|GITHUB_TOKEN', text) or text.count('github.token') != 1 \
+        or 'GH_TOKEN: ${{ github.token }}' not in text:
+    fail("release.yml references secrets, or the token other than as GH_TOKEN of the release step")
+on = rl.get('on', rl.get(True))
+if on != {'push': {'tags': ['v[0-9]+.[0-9]+.[0-9]+']}}:
+    fail("release.yml: triggers are %s, expected {'push': {'tags': ['v[0-9]+.[0-9]+.[0-9]+']}}" % on)
+if rl.get('permissions') != {'contents': 'read'}:
+    fail("release.yml: permissions are %s, expected {'contents': 'read'}" % rl.get('permissions'))
+rjobs = rl.get('jobs') or {}
+if sorted(rjobs) != ['github-release']:
+    fail("release.yml: jobs are %s, expected ['github-release']" % sorted(rjobs))
+job = rjobs['github-release']
+for key in ('environment', 'secrets', 'uses', 'container', 'services'):
+    if key in job:
+        fail("release.yml: job github-release sets %s" % key)
+if job.get('permissions') != {'contents': 'write'}:
+    fail("release.yml: job github-release permissions are %s, expected {'contents': 'write'}" % job.get('permissions'))
+if job.get('if') != "github.repository == 'TinyGearsOrg/uom'":
+    fail("release.yml: job github-release must run only in TinyGearsOrg/uom (if: %s)" % job.get('if'))
+if job.get('runs-on') != 'ubuntu-latest' or not isinstance(job.get('timeout-minutes'), int):
+    fail("release.yml: job github-release needs runs-on ubuntu-latest and timeout-minutes")
+RELEASE_FORBIDDEN = re.compile(r'deploy|-Prelease|publish|\bgpg\b|\bgit\s+(push|tag)\b|central|\bmvn\b', re.I)
+release_commands = []
+for step in job.get('steps') or []:
+    if 'uses' in step:
+        if not step['uses'].startswith('actions/checkout@'):
+            fail("release.yml: action '%s' is not actions/checkout" % step['uses'])
+        if (step.get('with') or {}).get('persist-credentials') is not False:
+            fail("release.yml: checkout must set persist-credentials: false")
+    run = str(step.get('run', ''))
+    if run:
+        if RELEASE_FORBIDDEN.search(run):
+            fail("release.yml: job github-release runs a forbidden command: '%s'" % run.strip())
+        if '${{' in run:
+            fail("release.yml: a run command expands an expression; pass it through env")
+        release_commands.append(run.strip())
+for uses in re.findall(r'^\s*-?\s*uses:\s*(.*?)\s*$', text, re.M):
+    if not re.fullmatch(r'actions/checkout@[0-9a-f]{40} # v\d+\.\d+\.\d+', uses):
+        fail("release.yml: action '%s' is not actions/checkout pinned to a commit hash with its version" % uses)
+EXPECTED_RELEASE = [
+    'bash scripts/release.sh notes "${TAG#v}" > "$RUNNER_TEMP/notes.md"',
+    'gh release create "$TAG" --verify-tag --title "uom ${TAG#v}" --notes-file "$RUNNER_TEMP/notes.md"',
+]
+if release_commands != EXPECTED_RELEASE:
+    fail("release.yml: the run commands are %s, expected %s" % (release_commands, EXPECTED_RELEASE))
 
 text, db = load('.github/dependabot.yml')
 if not isinstance(db, dict) or db.get('version') != 2:

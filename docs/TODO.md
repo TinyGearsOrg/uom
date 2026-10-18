@@ -26,4 +26,3 @@ No version has been released, signed, tagged or uploaded. The release is prepare
 - Create the OpenPGP signing key, publish it to the key servers, and keep a backup and a revocation certificate.
 - Generate a Central Portal user token and put it into `~/.m2/settings.xml` under the server id `central` (never into
   the repository).
-- Replace `0.1.0-SNAPSHOT` with the release version and set `project.build.outputTimestamp` (RELEASING, step 1).

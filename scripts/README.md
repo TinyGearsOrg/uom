@@ -1,6 +1,7 @@
 # Scripts
 
-Release checks and the commit-message check; none of them signs, deploys, tags or uploads anything. Run them from any directory.
+Release checks, the release steps and the commit-message check. Only `release.sh tag` tags and pushes; none of them
+signs artifacts, deploys or uploads anything. Run them from any directory.
 
 | Script | Checks |
 |---|---|
@@ -8,6 +9,7 @@ Release checks and the commit-message check; none of them signs, deploys, tags o
 | `check-javadoc.sh` | no javadoc warnings in the published modules (doclint all); it reruns javadoc with `-Xmaxwarns 100000`, as maven-javadoc-plugin 3.12.0 misses the count when that is raised, and counts the `file:line: warning:` lines |
 | `verify-release.sh [--jdk <JDK home>] [--require-jlink] [--self-test]` | the release artifacts and a consumer project, below |
 | `check-workflows.sh [--self-test]` | `.github/workflows/ci.yml` (the only workflow) and `.github/dependabot.yml`, below |
+| `release.sh prepare\|check\|tag\|next\|notes <version>`, `release.sh --self-test` | the scripted steps of a release ([docs/RELEASING.md](../docs/RELEASING.md)): `prepare` sets the version in the POMs, the dependency snippets, the README status and badge, the build timestamp and the changelog heading; `check` validates the git state (clean, on `main`, equal to `origin/main`, no tag yet, CI green for the commit), the versions and texts, the changelog date against the build timestamp, the open release steps of `docs/TODO.md`, the POM's repository against `origin`, removed public API lines since the last tag (a major version from 1.0), JDK 21, the `central` server in `~/.m2/settings.xml` and a gpg secret key, then runs the build and the release checks; `tag` tags and pushes once the version is on Maven Central; `next` sets the next snapshot and an empty `Unreleased` section; `notes` prints the version's changelog section as the release notes (`.github/workflows/release.yml`) and fails unless the POMs are at that version. `--self-test` runs every step on a clone and asserts that each failed check is detected |
 | `check-commit-msg.sh <file> \| --self-test` | the commit subject starts with a conventional prefix of `CONTRIBUTING.md` (the commit-msg hook); merge, revert and fixup subjects pass |
 
 ## verify-release.sh
@@ -45,8 +47,8 @@ temporary repository, an extra dependency of the consumer, an extra module in th
 
 ## check-workflows.sh
 
-Parses the workflow and the dependabot configuration (python3 with PyYAML) and fails when: a workflow file other than
-`ci.yml` exists; the triggers are not exactly `push` (filtered to `main`) and an unfiltered `pull_request` (no
+Parses the workflows and the dependabot configuration (python3 with PyYAML) and fails when: a workflow file other than
+`ci.yml` and `release.yml` exists. In `ci.yml`: the triggers are not exactly `push` (filtered to `main`) and an unfiltered `pull_request` (no
 `pull_request_target`); `cancel-in-progress` is not limited to pull-request runs; `permissions` is not
 exactly `contents: read` or a job sets its own; the workflow mentions `secrets`, `github.token` or `GITHUB_TOKEN`; a
 job is not `build` (matrix JDK 17, 21 and 25), `generated` or `analyze`, lacks `timeout-minutes` or runs a command
@@ -54,7 +56,13 @@ containing deploy, `-Prelease`, publish, central, gpg, `git push`/`git tag` or `
 `actions/checkout`, `actions/setup-java` or `j178/prek-action` (with an exact `prek-version`) pinned to a full commit hash
 with its version as a comment
 (`@<40 hex digits> # v7.0.1`, the form Dependabot keeps current), checkout keeps credentials, setup-java is not Temurin or sets
-a Maven cache outside `build`; the run commands differ from the CI block of `CONTRIBUTING.md`; dependabot does not
+a Maven cache outside `build`; the run commands differ from the CI block of `CONTRIBUTING.md`. In `release.yml`: the
+trigger is not exactly a pushed `v[0-9]+.[0-9]+.[0-9]+` tag; `permissions` is not `contents: read` with
+`contents: write` on its one job `github-release` only; the job is not limited to `TinyGearsOrg/uom`; it uses a secret,
+or the token other than as `GH_TOKEN` of the release step; it uses an action other than `actions/checkout` pinned by
+hash, or a checkout that keeps credentials; a run command expands an expression, contains deploy, `-Prelease`,
+publish, central, gpg, `mvn` or `git push`/`git tag`, or the commands differ from `release.sh notes` and
+`gh release create --verify-tag`. Dependabot does not
 update Maven (the root and `scripts/consumer`) and GitHub Actions weekly, grouped, with a PR limit and a cooldown of at
 least 7 days, and ignores the Eclipse formatter jars of `uom-codegen` (pinned to the Spotless lockfile). `--self-test` asserts that each of these mutations is
 detected.

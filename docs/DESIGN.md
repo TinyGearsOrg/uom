@@ -590,7 +590,8 @@ Dimension exponents have no range check: dimension arithmetic uses exact `int` o
 - Generator golden tests: sample inputs compile, behave, and report errors with file and line.
 - CI (`.github/workflows/ci.yml`): `build` runs `mvn -B verify` on JDK 17, 21 and 25; `analyze` runs the pre-commit
   hooks with prek (`check-pom.sh` and `check-workflows.sh` among them) and `check-javadoc.sh`; `verify-release.sh` runs
-  locally before a release (RELEASING.md). Drift check (job `generated`):
+  locally before a release (RELEASING.md). `release.yml` creates the GitHub release of a pushed version tag with its
+  changelog notes, and nothing else. Drift check (job `generated`):
   regenerate and fail on a non-empty `git diff` or an untracked file.
 - Semantics tests: precision mixing, equality and equivalence, alternate units, offset units,
   roots of non-perfect powers.
@@ -826,7 +827,7 @@ behaviour for users is in the linked documents. The full discussion and probe re
 
 **DR-11 Java 17 is the baseline.**
 - *Decision.* `maven.compiler.release` is 17 and the enforcer requires JDK 17 or later; CI builds on JDK 17, 21 and 25,
-  and releases are still built and checked with JDK 21 (RELEASING step 5).
+  and releases are still built and checked with JDK 21 (RELEASING, "Procedure").
 - *Why.* Much of the JSR-385 audience is on older JDKs (Indriya targets Java 8). Going from 21 to 17 cost three APIs:
   `Math.divideExact` (18) became `Math.toIntExact((long) a / n)`, which keeps the `MIN_VALUE / -1` overflow that
   `UomDimensionTest.rootEdgeCases` pins; `BigDecimal.TWO` (19) became `BigDecimal.valueOf(2)`;

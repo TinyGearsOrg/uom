@@ -1,17 +1,18 @@
 # Releasing
 
 Instructions for the maintainer. **Not yet executed:** no version of uom has been released, signed, tagged or
-uploaded. Everything up to the upload is prepared and tested (`scripts/check-pom.sh`, `scripts/verify-release.sh`);
-the steps below that touch keys, credentials, Maven Central or tags are the maintainer's alone.
+uploaded. Everything up to the upload is prepared and tested; `scripts/release.sh` scripts the version edits, the
+checks before the upload, the tag and the next snapshot. The upload and the publishing in the Central Portal stay
+manual, and the steps that touch keys, credentials, Maven Central or tags are the maintainer's alone.
 
-Published: `org.tinygears:uom-parent` (pom only), and `org.tinygears:uom-jsr` and `org.tinygears:uom`, each with a
-jar, a sources jar and a javadoc jar. Not published: `uom-codegen`, `uom-tck`, `uom-examples` (deploy skipped, excluded from the Central
+Published: `org.tinygears:uom-parent` (pom only), and `org.tinygears:uom-engine`, `org.tinygears:uom` and
+`org.tinygears:uom-jsr`, each with a jar, a sources jar and a javadoc jar. Not published: `uom-codegen`, `uom-tck`, `uom-examples` (deploy skipped, excluded from the Central
 bundle, `skipPublishing` set literally in their POMs).
 
 > **Warning.** `mvn -Prelease deploy` is never a dry run: on a release version it uploads the bundle to the Central
 > Portal. On a `-SNAPSHOT` version the release profile's enforcer execution (`requireReleaseVersion`,
 > `requireReleaseDeps`, not skippable with `-Denforcer.skip`) fails the build before the Central plugin runs. Run it
-> only in step 5 below. To check the artifacts locally, use `bash scripts/verify-release.sh`, which installs into a
+> only in step 3 below. To check the artifacts locally, use `bash scripts/verify-release.sh`, which installs into a
 > temporary local repository and uploads nothing.
 
 ## One-time setup
@@ -53,73 +54,74 @@ bundle, `skipPublishing` set literally in their POMs).
 
 ## Checklist
 
-- [ ] The CI workflow is green on `main` for the commit to release.
-- [ ] `CHANGELOG.md`: the `Unreleased` section is complete; rename it to the version and date.
+`release.sh check` validates the git state, CI, the versions, the changelog, the build timestamp, the repository URLs,
+the release environment and the build; these stay a review:
+
+- [ ] `CHANGELOG.md`: the `Unreleased` section describes the release completely.
 - [ ] `docs/api/public-api.txt`: the diff since the last release matches the version step (a removed or changed line
-      needs a major version after 1.0, see [DESIGN.md](DESIGN.md), section 8).
-- [ ] The scm, url and issue URLs in `pom.xml` point to the current repository name.
-- [ ] `docs/TODO.md` has no open item that blocks this release.
+      needs a major version after 1.0, see [DESIGN.md](DESIGN.md), section 8; `check` fails on removed lines within one
+      major version from 1.0).
+- [ ] `docs/TODO.md` has no open item that blocks this release (`check` fails while "Release readiness" lists steps).
 
 ## Procedure
 
-Example for version `1.0.0`; the next development version is `1.0.1-SNAPSHOT`.
+Example for version `1.0.0`; the next development version is `1.0.1-SNAPSHOT`. Use JDK 21 throughout (with another
+JDK on the `PATH`, pass `--jdk <JDK 21 home>` to `check`).
 
-1. **Set the version** in all six POMs:
-
-   ```
-   mvn -B org.codehaus.mojo:versions-maven-plugin:2.23.0:set -DnewVersion=1.0.0 -DgenerateBackupPoms=false
-   ```
-
-   Change the version of the dependency snippets in `README.md`, `docs/NATIVE.md` and `docs/JSR.md` by hand, and the
-   status lines: "in development, not released" in the README status, the `release-not yet` badge (replace it with
-   the Maven Central badge), "Not published yet; after
-   `mvn -q -B install -DskipTests` in this repository" under its *Install*, and "not published yet" in
-   `docs/NATIVE.md`. In `pom.xml`, set
-   `project.build.outputTimestamp` to the release date (or the committer date of the previous
-   commit, `git log -1 --format=%cI`), as its comment says.
-2. **Verify**, with JDK 21:
+1. **Prepare** the version and push it:
 
    ```
-   mvn -q -B clean verify
-   bash scripts/check-pom.sh
-   bash scripts/check-javadoc.sh
-   bash scripts/verify-release.sh --require-jlink
+   bash scripts/release.sh prepare 1.0.0
+   git diff
+   git commit -am "build: release 1.0.0"
+   git push origin main
    ```
 
-   All must pass. `verify-release.sh` builds the release artifacts into a temporary repository, checks their
-   contents, reproducibility, a `jlink` image and a consumer project, and uploads nothing
-   ([scripts/README.md](../scripts/README.md)). `--require-jlink` makes a JDK that cannot link (no `jmods`, as in
-   some distribution packages) fail the check instead of skipping the `jlink` stage. With another JDK on the `PATH`,
-   pass `--jdk <JDK 21 home>`.
-3. **Commit** the version change: `git commit -m "build: release 1.0.0"` (do not tag yet).
-4. **Check the credentials**: `~/.m2/settings.xml` has the `central` server, and `gpg --list-secret-keys` shows the
-   key.
-5. **Upload**, with JDK 21:
+   `prepare` sets the version in all six POMs and in the dependency snippets of `README.md`, `docs/NATIVE.md` and
+   `docs/JSR.md`, replaces the "not released" status and badge of the first release, sets
+   `project.build.outputTimestamp` to the release date and renames `## [Unreleased]` in `CHANGELOG.md` to
+   `## [1.0.0] - <date>`. It edits only: review the diff before the commit.
+2. **Check**, once CI is green for the release commit:
+
+   ```
+   bash scripts/release.sh check 1.0.0
+   ```
+
+   It fails on the first problem: a dirty tree, a branch other than `main` or not equal to `origin/main`, an existing
+   tag, no green CI run for the commit, a version or a text left at the old version, a changelog date that differs from
+   the build timestamp, open release steps in `docs/TODO.md`, POM URLs of another repository, removed public API lines
+   within a major version, a JDK other than 21, no `central` server in `~/.m2/settings.xml`, no gpg secret key. Then it
+   runs `mvn -q -B clean verify`, `check-pom.sh`, `check-javadoc.sh` and `verify-release.sh --require-jlink`
+   ([scripts/README.md](../scripts/README.md)), which builds the release artifacts into a temporary repository, checks
+   their contents, reproducibility, a `jlink` image and a consumer project, and uploads nothing.
+3. **Upload**:
 
    ```
    mvn -B -Prelease -Dgpg.skip=false clean deploy
    ```
 
-   This builds, tests, signs and uploads one bundle with the three published artifacts to the Central Portal. With
+   This builds, tests, signs and uploads one bundle with the four published artifacts to the Central Portal. With
    `autoPublish=false` nothing is public yet.
-6. **Publish in the Portal.** In *Deployments*, wait for the deployment to be *Validated*, check its file list
-   (`uom-parent`, `uom-jsr`, `uom`: pom, jar, sources and javadoc jars, each with `.asc` and checksums; nothing of
-   `uom-codegen`, `uom-tck`, `uom-examples`), then press *Publish*. If anything is wrong, press *Drop*, fix, and start
-   again at step 2; a published version can never be changed or deleted.
-7. **Tag** the release commit and push it:
+4. **Publish in the Portal.** In *Deployments*, wait for the deployment to be *Validated*, check its file list
+   (`uom-parent`, `uom-engine`, `uom`, `uom-jsr`: pom, jar, sources and javadoc jars, each with `.asc` and checksums;
+   nothing of `uom-codegen`, `uom-tck`, `uom-examples`), then press *Publish*. If anything is wrong, press *Drop*, fix,
+   and start again at step 1 with the same version; a published version can never be changed or deleted.
+5. **Tag**, once the version is on Maven Central (minutes to hours after *Publish*):
 
    ```
-   git tag -s v1.0.0 -m "uom 1.0.0"
-   git push origin main v1.0.0
+   bash scripts/release.sh tag 1.0.0
    ```
 
-8. **Next snapshot:**
+   It checks that `uom-1.0.0.pom` is on `repo1.maven.org`, then creates the signed tag `v1.0.0` on the release commit
+   and pushes it. The pushed tag starts `.github/workflows/release.yml`, which creates the GitHub release "uom 1.0.0"
+   with the notes of the `1.0.0` section of `CHANGELOG.md` (`release.sh notes 1.0.0`) and links to Maven Central; it
+   fails if the tagged commit is not at version 1.0.0.
+6. **Next snapshot:**
 
    ```
-   mvn -B org.codehaus.mojo:versions-maven-plugin:2.23.0:set -DnewVersion=1.0.1-SNAPSHOT -DgenerateBackupPoms=false
+   bash scripts/release.sh next 1.0.1-SNAPSHOT
+   git commit -am "build: prepare 1.0.1-SNAPSHOT"
+   git push origin main
    ```
 
-   Add a new empty `Unreleased` section to `CHANGELOG.md`, commit `build: prepare 1.0.1-SNAPSHOT` and push.
-
-The artifacts appear on Maven Central (`https://repo1.maven.org/maven2/org/tinygears/uom/`) some minutes to hours
-after *Publish*.
+   `next` sets the version and adds an empty `Unreleased` section to `CHANGELOG.md`.

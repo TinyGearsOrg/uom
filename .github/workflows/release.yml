@@ -1,0 +1,33 @@
+# SPDX-License-Identifier: Apache-2.0
+# Creates the GitHub release of a pushed version tag, with the notes of its CHANGELOG.md section (docs/RELEASING.md).
+# Nothing is built, signed or uploaded here; scripts/check-workflows.sh guards this.
+name: Release
+
+on:
+  push:
+    tags: ['v[0-9]+.[0-9]+.[0-9]+']
+
+permissions:
+  contents: read
+
+jobs:
+  github-release:
+    name: GitHub release
+    # forks get no releases
+    if: github.repository == 'TinyGearsOrg/uom'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # fails unless the tagged commit is the release commit of the version
+      - env:
+          TAG: ${{ github.ref_name }}
+        run: bash scripts/release.sh notes "${TAG#v}" > "$RUNNER_TEMP/notes.md"
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: gh release create "$TAG" --verify-tag --title "uom ${TAG#v}" --notes-file "$RUNNER_TEMP/notes.md"
