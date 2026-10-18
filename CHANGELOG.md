@@ -71,7 +71,8 @@ Nothing is released yet; the development version is `0.1.0-SNAPSHOT`.
   ([docs/UNITS.md](docs/UNITS.md)), the user documentation, the release verification script and a CI workflow
   (JDK 17, 21 and 25).
 - Pre-commit hooks (`.pre-commit-config.yaml`, for prek or pre-commit): end of file, line endings, trailing
-  whitespace, shellcheck and zizmor. The CI actions are pinned to commit hashes, and Dependabot proposes an update
+  whitespace, shellcheck, zizmor, Spotless, the regeneration of the generated sources, `check-pom.sh`,
+  `check-workflows.sh` and a conventional-prefix check of the commit subject. The CI actions are pinned to commit hashes, and Dependabot proposes an update
   after a cooldown of 7 days.
 - Java 17 is the baseline (was 21); releases are still built with JDK 21.
 - `UomQuantity`, implemented by every quantity of this library and extended by the typed interfaces: `as(Class)`

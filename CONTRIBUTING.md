@@ -91,17 +91,25 @@ commands, with a read-only token and no deploy step. `--require-jlink` needs a J
 
 ## Pre-commit hooks
 
-`.pre-commit-config.yaml` runs cheap local checks on the files of a commit: end of file, mixed line endings, trailing
-whitespace, `shellcheck` on the scripts and `zizmor` (from severity low) on the workflow and dependabot configuration.
+`.pre-commit-config.yaml` runs cheap local checks, each only when the commit touches the files it reads:
+
+- end of file, mixed line endings and trailing whitespace (fixed in place);
+- `shellcheck` on the scripts and `zizmor` (from severity low) on the workflow and dependabot configuration;
+- `spotless:apply` on the Java sources, and the regeneration of the generated sources from `data/` (both fix in
+  place, so a hand edit of a generated file is reverted and the commit stops);
+- `scripts/check-pom.sh` on a POM change and `scripts/check-workflows.sh` on a change under `.github/`;
+- on the commit message, `scripts/check-commit-msg.sh`: the subject starts with a prefix of the conventions below.
+
 It works with [prek](https://github.com/j178/prek) or [pre-commit](https://pre-commit.com/); each fetches the hook
-versions pinned in the file:
+versions pinned in the file and needs `mvn` and `python3` on the path:
 
 ```
-prek install            # once: run the hooks on every git commit
+prek install            # once: the pre-commit and commit-msg hooks
 prek run --all-files    # check the whole tree
 ```
 
-The hooks do not build or test; `mvn -B verify` and CI stay the gate.
+A run over the whole tree takes about 15 seconds. `check-javadoc.sh` (a clean release build) and the tests are not
+hooks; `mvn -B verify` and CI stay the gate.
 
 ## Conventions
 
@@ -109,7 +117,8 @@ The hooks do not build or test; `mvn -B verify` and CI stay the gate.
   `spotless:apply` writes it); scripts carry `# SPDX-License-Identifier: Apache-2.0` after the shebang. Contributions are licensed under the
   [Apache License 2.0](LICENSE).
 - Code comments are short (one to three lines) and state what the code cannot: a constraint or a reason.
-- Commit subjects use a conventional prefix: `feat:`, `fix:`, `chore:`, `docs:`, `test:`, `style:`, `build:`, `ci:`. The body
-  says what changed and why. No emojis.
+- Commit subjects use a conventional prefix: `feat:`, `fix:`, `perf:`, `refactor:`, `chore:`, `docs:`, `test:`,
+  `style:`, `build:`, `ci:`, optionally with a scope (`fix(engine):`) or `!`. The body says what changed and why. No
+  emojis.
 - Documentation is concise and technical; every statement must match the code and the commands.
 - Releases are made by the maintainer only, following [docs/RELEASING.md](docs/RELEASING.md).

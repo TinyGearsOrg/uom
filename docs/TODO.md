@@ -3,9 +3,9 @@
 Open work only. The item numbers are stable IDs: a gap is a finished item; the decisions, with their rationale and when
 to revisit them, are in [DESIGN.md](DESIGN.md) section 1 (DR-01 to DR-14); the last version of this file with the full
 discussion is `git show 5d734d3:docs/TODO.md`. The groups: gaps against the JSR-385 reference implementation Indriya
-(10, 13, 14), further pre-commit hooks (17), open defects and hardening carried over from the milestone reviews (21 to
-32), the native API (33), then the steps before the first release ("Release readiness"). Each item says under "Needed
-by" what, if anything, it blocks.
+(10, 13, 14), open defects and hardening carried over from the milestone reviews (21 to 32), the native API (33), then
+the steps before the first release ("Release readiness"). Each item says under "Needed by" what, if anything, it
+blocks.
 
 ## 10. Behaviour comparison with Indriya
 
@@ -46,16 +46,6 @@ reference status is the expert group's, so engage the unitsofmeasurement maintai
 first second implementation. Re-run the TCK in CI and publish the result rather than relying on the README claim.
 
 **Needed by:** before the first release announcement.
-
-## 17. Further pre-commit hooks
-
-**Status:** open. `.pre-commit-config.yaml` has the whitespace, line-ending, `shellcheck` and `zizmor` hooks
-(CONTRIBUTING.md). Candidates still to add, all cheap and local: the formatting check (`spotless:check`), a check that
-generated files are not edited by hand (a header check, or regenerate and diff), the `scripts/check-*.sh` scripts that
-need no network, and a commit-message hook for the conventional prefixes of `CONTRIBUTING.md`. Keep `mvn clean verify`
-out of the hooks (too slow); CI stays the gate.
-
-**Needed by:** nothing.
 
 ## 23. Alternate-unit registry (global state)
 

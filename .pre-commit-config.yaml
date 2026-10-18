@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Local hooks, run with prek or pre-commit (CONTRIBUTING.md); CI stays the gate.
+default_install_hook_types: [pre-commit, commit-msg]
 repos:
 - repo: https://github.com/pre-commit/pre-commit-hooks
   rev: v6.0.0
@@ -18,3 +19,35 @@ repos:
   hooks:
     - id: zizmor
       args: [ --min-severity, low ]
+- repo: local
+  hooks:
+    - id: spotless
+      name: spotless (format the Java sources)
+      entry: mvn -q -B spotless:apply
+      language: system
+      pass_filenames: false
+      files: \.java$|^config/(eclipse-java-formatter\.xml|import-order\.importorder|license-header\.txt)$
+    - id: generated
+      name: generated sources (regenerate from data/)
+      entry: mvn -q -B -Pgenerate -pl uom-codegen -am process-classes
+      language: system
+      pass_filenames: false
+      files: ^(data/|config/|uom-engine/src/main/|uom-codegen/src/main/|uom(-jsr)?/src/main/java/org/tinygears/uom/(jsr/)?(quantity|systems)/|docs/UNITS\.md$)
+    - id: check-pom
+      name: check-pom.sh
+      entry: scripts/check-pom.sh
+      language: system
+      pass_filenames: false
+      files: (^|/)pom\.xml$|^scripts/check-pom\.sh$
+    - id: check-workflows
+      name: check-workflows.sh
+      entry: scripts/check-workflows.sh
+      language: python
+      additional_dependencies: [pyyaml==6.0.2]
+      pass_filenames: false
+      files: ^(\.github/|CONTRIBUTING\.md$|scripts/check-workflows\.sh$)
+    - id: commit-msg
+      name: conventional commit subject
+      entry: scripts/check-commit-msg.sh
+      language: system
+      stages: [commit-msg]

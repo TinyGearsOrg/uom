@@ -1,6 +1,6 @@
 # Scripts
 
-Release checks; none of them signs, deploys, tags or uploads anything. Run them from any directory.
+Release checks and the commit-message check; none of them signs, deploys, tags or uploads anything. Run them from any directory.
 
 | Script | Checks |
 |---|---|
@@ -8,6 +8,7 @@ Release checks; none of them signs, deploys, tags or uploads anything. Run them 
 | `check-javadoc.sh` | no javadoc warnings in the published modules (doclint all) |
 | `verify-release.sh [--jdk <JDK home>] [--require-jlink] [--self-test]` | the release artifacts and a consumer project, below |
 | `check-workflows.sh [--self-test]` | `.github/workflows/ci.yml` (the only workflow) and `.github/dependabot.yml`, below |
+| `check-commit-msg.sh <file> \| --self-test` | the commit subject starts with a conventional prefix of `CONTRIBUTING.md` (the commit-msg hook); merge, revert and fixup subjects pass |
 
 ## verify-release.sh
 
