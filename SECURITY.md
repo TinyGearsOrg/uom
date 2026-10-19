@@ -2,8 +2,9 @@
 
 ## Supported versions
 
-uom has not been released yet. Until 1.0, only the latest release (and the `main` branch) receives fixes; from 1.0,
-the latest minor release of the current major version does.
+uom is released as `0.x` versions, any of which may change the API ([docs/DESIGN.md](docs/DESIGN.md), section 8).
+Until 1.0, only the latest release (and the `main` branch) receives fixes; from 1.0, the latest minor release of the
+current major version does.
 
 ## Reporting a vulnerability
 
