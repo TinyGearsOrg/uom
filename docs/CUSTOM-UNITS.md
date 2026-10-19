@@ -57,7 +57,11 @@ are `Unit<?>`, narrowed with `asType`.
   line. `resolver` opens included and extended files by name (null: none, so `@include` and `@extends` fail).
 - An error in a file, included files too, throws `DefinitionException` with the message `file:line: text`.
 - Nothing is registered globally, except `~` lines (see the caveats). To parse and format the new symbols, add the
-  system to a format: `UnitFormat.standard().with(system)` returns a new format and leaves the old one unchanged.
+  system to a format: `UnitFormat.standard().with(system)` returns a new format and leaves the old one unchanged;
+  `QuantityFormat.with(system)` does the same for a quantity format and keeps its locale, grouping and decimals.
+- A format writes the first text that parses back, so a format without the system writes a loaded unit as its formula
+  (`1.0 25146|125·m` for a furlong), while `toString` writes the symbol (`1.0 furlong`). Format with the format you
+  parse with.
 
 ```java
 SystemOfUnits fromFile = SystemOfUnits.load(Path.of("units/medieval.units"));

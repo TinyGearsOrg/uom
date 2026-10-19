@@ -96,6 +96,19 @@ public final class UomQuantityFormat implements QuantityFormat {
     }
 
     /**
+     * This format with {@code systems} added to its unit format ({@link UomUnitFormat#with}), so that their symbols
+     * are parsed and written; the locale, grouping and decimals are kept. A format without a system writes its
+     * units as formulas.
+     *
+     * @param systems the systems to add
+     * @return the new format
+     * @throws IllegalArgumentException as {@link UomUnitFormat#with}
+     */
+    public UomQuantityFormat with(UomSystemOfUnits... systems) {
+        return new UomQuantityFormat(unitFormat.with(systems), numbers, grouping, decimals);
+    }
+
+    /**
      * This format with numbers in {@code locale}; throws {@link IllegalArgumentException} if the locale's number
      * symbols collide so that a number could not round trip (no available locale of JDK 25 does).
      *

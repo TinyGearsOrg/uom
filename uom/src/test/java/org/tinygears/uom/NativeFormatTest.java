@@ -191,4 +191,27 @@ class NativeFormatTest {
                 name -> name.equals("common.units") ? new StringReader("league:league 3 mi\n") : null);
         assertEquals("[leagues]", shop.units().toString());
     }
+
+    @Test
+    void withAddsASystemAndKeepsTheOtherSettings() {
+        SystemOfUnits medieval = SystemOfUnits
+                .load("medieval.units", new StringReader("furlong:furlong 220 yd\n"), null);
+        Quantity<?> one = Untyped.of(1, UnitFormat.standard().with(medieval).parse("furlong").asType(Untyped.class));
+        assertEquals("1.0 furlong", one.toString());
+        assertEquals("1.0 25146|125·m", QuantityFormat.standard().format(one));
+        QuantityFormat format = QuantityFormat.standard().withLocale(Locale.GERMANY).withGrouping(true)
+                .withDecimals(MathContext.DECIMAL64).with(medieval);
+        assertEquals("1,0 furlong", format.format(one));
+        assertEquals(Locale.GERMANY, format.locale());
+        assertEquals(MathContext.DECIMAL64, format.decimalContext());
+        assertEquals(new BigDecimal("1.50"), format.parse("1,50 furlong").value());
+        assertEquals("1.0 25146|125·m", QuantityFormat.standard().format(one));
+    }
+
+    @Test
+    void withRefusesAnEmptyList() {
+        assertEquals(
+                "no systems",
+                assertThrows(IllegalArgumentException.class, () -> QuantityFormat.standard().with()).getMessage());
+    }
 }

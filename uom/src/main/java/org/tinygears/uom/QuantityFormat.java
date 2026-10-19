@@ -53,12 +53,25 @@ public final class QuantityFormat {
     }
 
     /**
-     * A new ROOT format over {@link UnitFormat#standard()}.
+     * A new ROOT format over {@link UnitFormat#standard()}. It writes a unit of a system it does not know, such as a
+     * loaded one, as a formula; add the system with {@link #with} to write its symbols.
      *
      * @return the format
      */
     public static QuantityFormat standard() {
         return new QuantityFormat(UnitFormat.standard());
+    }
+
+    /**
+     * This format with {@code added} systems in its unit format ({@link UnitFormat#with}), so that their symbols are
+     * parsed and written; the locale, grouping and decimals are kept.
+     *
+     * @param added the systems to add
+     * @return the new format
+     * @throws IllegalArgumentException as {@link UnitFormat#with}
+     */
+    public QuantityFormat with(SystemOfUnits... added) {
+        return new QuantityFormat(unitFormat.with(added), numbers, grouping, decimals);
     }
 
     /**

@@ -303,6 +303,7 @@ org.tinygears.uom QuantityFormat member public java.lang.String format(org.tinyg
 org.tinygears.uom QuantityFormat member public java.math.MathContext decimalContext()
 org.tinygears.uom QuantityFormat member public java.util.Locale locale()
 org.tinygears.uom QuantityFormat member public org.tinygears.uom.Quantity<?> parse(java.lang.CharSequence)
+org.tinygears.uom QuantityFormat member public org.tinygears.uom.QuantityFormat with(org.tinygears.uom.SystemOfUnits...)
 org.tinygears.uom QuantityFormat member public org.tinygears.uom.QuantityFormat withDecimals(java.math.MathContext)
 org.tinygears.uom QuantityFormat member public org.tinygears.uom.QuantityFormat withGrouping(boolean)
 org.tinygears.uom QuantityFormat member public org.tinygears.uom.QuantityFormat withLocale(java.util.Locale)
@@ -2055,6 +2056,7 @@ org.tinygears.uom.jsr.systems UomQuantityFormat member public java.math.MathCont
 org.tinygears.uom.jsr.systems UomQuantityFormat member public java.util.Locale getLocale()
 org.tinygears.uom.jsr.systems UomQuantityFormat member public org.tinygears.uom.jsr.quantity.UomQuantity<?, ?> parse(java.lang.CharSequence) throws javax.measure.format.MeasurementParseException
 org.tinygears.uom.jsr.systems UomQuantityFormat member public org.tinygears.uom.jsr.quantity.UomQuantity<?, ?> parse(java.lang.CharSequence,java.text.ParsePosition) throws javax.measure.format.MeasurementParseException
+org.tinygears.uom.jsr.systems UomQuantityFormat member public org.tinygears.uom.jsr.systems.UomQuantityFormat with(org.tinygears.uom.jsr.systems.UomSystemOfUnits...)
 org.tinygears.uom.jsr.systems UomQuantityFormat member public org.tinygears.uom.jsr.systems.UomQuantityFormat withDecimals(java.math.MathContext)
 org.tinygears.uom.jsr.systems UomQuantityFormat member public org.tinygears.uom.jsr.systems.UomQuantityFormat withGrouping(boolean)
 org.tinygears.uom.jsr.systems UomQuantityFormat member public org.tinygears.uom.jsr.systems.UomQuantityFormat withLocale(java.util.Locale)

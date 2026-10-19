@@ -7,6 +7,9 @@ the project follows [semantic versioning](https://semver.org/) from 1.0.0 (see [
 
 ### Added
 
+- `QuantityFormat.with(SystemOfUnits...)` and `UomQuantityFormat.with(UomSystemOfUnits...)`: add systems to the unit
+  format of a quantity format and keep its locale, grouping and decimals ([docs/CUSTOM-UNITS.md](docs/CUSTOM-UNITS.md)).
+
 - `Untyped.of` in `uom-jsr`: the five factories of the typed interfaces (a `double` or a `BigDecimal`, with a `Scale` and
   a `MathContext`) for a quantity in a unit of any dimension ([docs/JSR.md](docs/JSR.md)).
 - `Jsr.toJsr(Unit)` and `Jsr.fromJsr(javax.measure.Unit)`: convert a unit between the native and the JSR-385 API over the
