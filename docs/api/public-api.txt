@@ -1709,6 +1709,11 @@ org.tinygears.uom.jsr.quantity TimeFactory member public org.tinygears.uom.jsr.q
 org.tinygears.uom.jsr.quantity TimeFactory member public static final org.tinygears.uom.jsr.UomUnit<javax.measure.quantity.Time> SYSTEM_UNIT
 org.tinygears.uom.jsr.quantity TimeFactory member public static final org.tinygears.uom.jsr.quantity.TimeFactory INSTANCE
 org.tinygears.uom.jsr.quantity TimeFactory type public final class org.tinygears.uom.jsr.quantity.TimeFactory implements javax.measure.spi.QuantityFactory<javax.measure.quantity.Time>
+org.tinygears.uom.jsr.quantity Untyped member public static org.tinygears.uom.jsr.quantity.Untyped of(double,javax.measure.Unit<?>)
+org.tinygears.uom.jsr.quantity Untyped member public static org.tinygears.uom.jsr.quantity.Untyped of(double,javax.measure.Unit<?>,javax.measure.Quantity$Scale)
+org.tinygears.uom.jsr.quantity Untyped member public static org.tinygears.uom.jsr.quantity.Untyped of(java.math.BigDecimal,javax.measure.Unit<?>)
+org.tinygears.uom.jsr.quantity Untyped member public static org.tinygears.uom.jsr.quantity.Untyped of(java.math.BigDecimal,javax.measure.Unit<?>,javax.measure.Quantity$Scale)
+org.tinygears.uom.jsr.quantity Untyped member public static org.tinygears.uom.jsr.quantity.Untyped of(java.math.BigDecimal,javax.measure.Unit<?>,javax.measure.Quantity$Scale,java.math.MathContext)
 org.tinygears.uom.jsr.quantity Untyped type public abstract interface org.tinygears.uom.jsr.quantity.Untyped extends org.tinygears.uom.jsr.quantity.UomQuantity<org.tinygears.uom.jsr.quantity.Untyped, org.tinygears.uom.jsr.quantity.Untyped>
 org.tinygears.uom.jsr.quantity UntypedDecimalQuantity member protected java.lang.Class<org.tinygears.uom.jsr.quantity.Untyped> quantityType()
 org.tinygears.uom.jsr.quantity UntypedDecimalQuantity member protected org.tinygears.uom.jsr.quantity.Untyped create(java.math.BigDecimal,org.tinygears.uom.jsr.UomUnit<org.tinygears.uom.jsr.quantity.Untyped>,javax.measure.Quantity$Scale,java.math.MathContext)

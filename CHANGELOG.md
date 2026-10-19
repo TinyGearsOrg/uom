@@ -5,6 +5,11 @@ the project follows [semantic versioning](https://semver.org/) from 1.0.0 (see [
 
 ## [Unreleased]
 
+### Added
+
+- `Untyped.of` in `uom-jsr`: the five factories of the typed interfaces (a `double` or a `BigDecimal`, with a `Scale` and
+  a `MathContext`) for a quantity in a unit of any dimension ([docs/JSR.md](docs/JSR.md)).
+
 ## [0.1.0] - 2026-10-18
 
 The first release, 0.1.0.
