@@ -251,4 +251,21 @@ class QuantityFormatTest {
                         "WARNING no quantity factory for javax.measure.quantity.Time; its quantities parse as untyped (broken)"),
                 logged);
     }
+
+    @Test
+    void withAddsASystemAndKeepsTheOtherSettings() {
+        UomSystemOfUnits medieval = UomSystemOfUnits
+                .load("medieval.units", new java.io.StringReader("furlong:furlong 220 yd\n"), null);
+        UomQuantityFormat standard = new UomQuantityFormat(UomUnitFormat.standard());
+        Quantity<?> one = standard.with(medieval).parse("1 furlong");
+        assertEquals("1.0 furlong", one.toString());
+        assertEquals("1.0 25146|125·m", standard.format(one));
+        UomQuantityFormat format = standard.withLocale(java.util.Locale.GERMANY).withGrouping(true)
+                .withDecimals(java.math.MathContext.DECIMAL64).with(medieval);
+        assertEquals("1,0 furlong", format.format(one));
+        assertEquals(java.util.Locale.GERMANY, format.getLocale());
+        assertEquals(java.math.MathContext.DECIMAL64, format.getDecimalContext());
+        assertEquals(new BigDecimal("1.50"), format.parse("1,50 furlong").getValue());
+        assertEquals("1.0 25146|125·m", standard.format(one));
+    }
 }
