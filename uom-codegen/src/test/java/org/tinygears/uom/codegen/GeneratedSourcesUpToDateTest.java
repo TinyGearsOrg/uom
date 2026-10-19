@@ -41,16 +41,6 @@ class GeneratedSourcesUpToDateTest {
     private static final String CATALOG_HEADER = Headers.java("data/si.units and data/quantity-types.txt");
 
     @Test
-    void missingFormatterProfileIsAnError() throws IOException {
-        Path dir = dataDir(Files.readString(DATA.resolve("quantity-types.txt")));
-        Files.delete(tmp.resolve("config").resolve("eclipse-java-formatter.xml"));
-        GenerationException e = assertThrows(GenerationException.class, () -> Generate.generate(dir));
-        assertTrue(
-                e.getMessage().endsWith("eclipse-java-formatter.xml:0: cannot read the formatter profile"),
-                e.getMessage());
-    }
-
-    @Test
     void licenseHeaderIsTheOneSpotlessWrites() throws IOException {
         String config = Files.readString(Path.of("../config/license-header.txt"), StandardCharsets.UTF_8);
         assertEquals(config.replace("$YEAR", "2026"), Headers.LICENSE);
@@ -83,7 +73,9 @@ class GeneratedSourcesUpToDateTest {
         expected.forEach((name, text) -> {
             if (!actual.containsKey(name)) {
                 problems.add("missing: " + dir.resolve(name));
-            } else if (!actual.get(name).equals(text)) {
+            } else if (!(name.endsWith(".java")
+                    ? Generate.sameCode(text, actual.get(name))
+                    : actual.get(name).equals(text))) {
                 problems.add("differs: " + dir.resolve(name));
             }
         });
@@ -105,7 +97,8 @@ class GeneratedSourcesUpToDateTest {
         assertTrue(
                 problems.isEmpty(),
                 () -> "Committed generated sources drift from data/; regenerate with"
-                        + " mvn -q -B -Pgenerate -pl uom-codegen -am process-classes\n" + String.join("\n", problems));
+                        + " mvn -q -B -Pgenerate -pl uom-codegen -am process-classes && mvn -q -B spotless:apply\n"
+                        + String.join("\n", problems));
     }
 
     // Standard types share their simple names with the generated types, so only those stay qualified there.
@@ -135,9 +128,10 @@ class GeneratedSourcesUpToDateTest {
 
     @Test
     void committedCatalogEqualsTheGeneratedText() throws IOException {
-        assertEquals(
-                Generate.generate(DATA).systems().get("SI.java"),
-                Files.readString(SYSTEMS.resolve("SI.java"), StandardCharsets.UTF_8));
+        assertTrue(
+                Generate.sameCode(
+                        Generate.generate(DATA).systems().get("SI.java"),
+                        Files.readString(SYSTEMS.resolve("SI.java"), StandardCharsets.UTF_8)));
     }
 
     @Test
@@ -249,7 +243,7 @@ class GeneratedSourcesUpToDateTest {
             Path file = sys.resolve(name);
             String text = Files.readString(file);
             Path old = sys.resolve("Old" + name);
-            Files.writeString(file, text.replace("public final class", "public  final class"));
+            Files.writeString(file, text.replace("public final class", "public class"));
             Files.writeString(old, text);
             Run r = check(q, sys);
             assertEquals(1, r.status());
@@ -296,11 +290,6 @@ class GeneratedSourcesUpToDateTest {
 
     private Path dataDir(String types) throws IOException {
         Path dir = Files.createDirectories(tmp.resolve("data"));
-        // The generator formats with the profile in config/ next to the data directory.
-        Path config = Files.createDirectories(tmp.resolve("config"));
-        Files.copy(
-                DATA.resolveSibling("config").resolve("eclipse-java-formatter.xml"),
-                config.resolve("eclipse-java-formatter.xml"));
         for (String file : Generate.CATALOGS) {
             Files.copy(DATA.resolve(file), dir.resolve(file));
         }

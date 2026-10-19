@@ -12,10 +12,6 @@ updates:
     groups:
       maven:
         patterns: ["*"]
-    # Pinned: the Eclipse formatter jars of uom-codegen follow the Spotless Eclipse step's lockfile (uom-codegen/pom.xml)
-    ignore:
-      - dependency-name: "org.eclipse.jdt:*"
-      - dependency-name: "org.eclipse.platform:*"
   - package-ecosystem: github-actions
     directory: /
     schedule:

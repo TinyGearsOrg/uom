@@ -58,7 +58,10 @@ class NativeGenerationTest {
                 out.systems().keySet());
         List<String> problems = new ArrayList<>(drift(out.quantities(), QUANTITIES));
         problems.addAll(drift(out.systems(), SYSTEMS));
-        assertEquals(List.of(), problems, "regenerate with mvn -q -B -Pgenerate -pl uom-codegen -am process-classes");
+        assertEquals(
+                List.of(),
+                problems,
+                "regenerate with mvn -q -B -Pgenerate -pl uom-codegen -am process-classes && mvn -q -B spotless:apply");
     }
 
     @Test
@@ -68,21 +71,21 @@ class NativeGenerationTest {
         assertTrue(length.startsWith(Headers.java("data/quantity-types.txt and data/quantity-relations.txt")));
         assertTrue(length.contains("\n    Speed divide(Time time);\n"), length);
         assertTrue(length.contains("\n    Unit<Length> SYSTEM_UNIT = Units.of(Length.class, BaseUnits.METRE);\n"));
+        // the layout is Spotless's, so the code is compared without whitespace
         assertTrue(
-                out.quantities().get("LengthValue.java").contains(
-                        "\n    public Speed divide(Time time) {\n        return product(time, true, Speed.SYSTEM_UNIT,"
-                                + " SpeedValue::new);\n    }\n"));
+                containsCode(
+                        out.quantities().get("LengthValue.java"),
+                        "public Speed divide(Time time) { return product(time, true, Speed.SYSTEM_UNIT, SpeedValue::new); }"));
         assertFalse(out.quantities().get("Dimensionless.java").contains("multiply("));
         // the native sources never name the JSR-385 side: its factory system units map to the native types
         out.quantities().forEach((name, text) -> assertFalse(text.contains("org.tinygears.uom.jsr"), name));
         out.systems().forEach((name, text) -> assertFalse(text.contains("org.tinygears.uom.jsr"), name));
         assertTrue(
-                out.systems().get("SI.java")
-                        .contains("\n    public static final Unit<Speed> METRE_PER_SECOND = Speed.SYSTEM_UNIT;\n"));
+                containsCode(
+                        out.systems().get("SI.java"),
+                        "public static final Unit<Speed> METRE_PER_SECOND = Speed.SYSTEM_UNIT;"));
         String energy = out.quantities().get("Energy.java");
-        assertTrue(
-                energy.contains("Units.of(\n            Energy.class,\n            BaseUnits.KILOGRAM.multiply("),
-                energy);
+        assertTrue(containsCode(energy, "Units.of(Energy.class, BaseUnits.KILOGRAM.multiply("), energy);
     }
 
     @Test
@@ -107,10 +110,6 @@ class NativeGenerationTest {
         assertEquals("usage: GenerateNative [--check] <dataDir> <quantitiesOut> <systemsOut>\n", r.err());
         assertEquals(2, run("--force", "data", "q", "s").status());
         Path data = Files.createDirectories(tmp.resolve("data"));
-        Files.createDirectories(tmp.resolve("config"));
-        Files.copy(
-                DATA.resolveSibling("config").resolve("eclipse-java-formatter.xml"),
-                tmp.resolve("config").resolve("eclipse-java-formatter.xml"));
         try (Stream<Path> files = Files.list(DATA)) {
             for (Path p : files.toList()) {
                 Files.copy(p, data.resolve(p.getFileName()));
@@ -141,6 +140,11 @@ class NativeGenerationTest {
         return new Run(status, buf.toString(StandardCharsets.UTF_8));
     }
 
+    /** Whether the generated source holds the code, whatever its layout. */
+    private static boolean containsCode(String source, String code) {
+        return source.replaceAll("\\s+", "").contains(code.replaceAll("\\s+", ""));
+    }
+
     private static List<String> drift(Map<String, String> expected, Path dir) throws IOException {
         Map<String, String> actual = new TreeMap<>();
         try (Stream<Path> s = Files.list(dir)) {
@@ -153,7 +157,7 @@ class NativeGenerationTest {
         }
         List<String> problems = new ArrayList<>();
         expected.forEach((name, text) -> {
-            if (!text.equals(actual.get(name))) {
+            if (!actual.containsKey(name) || !Generate.sameCode(text, actual.get(name))) {
                 problems.add((actual.containsKey(name) ? "differs: " : "missing: ") + name);
             }
         });
