@@ -8,8 +8,8 @@ the latest minor release of the current major version does.
 ## Reporting a vulnerability
 
 Do not open a public issue. Report it privately through GitHub's private vulnerability reporting of
-[TinyGearsOrg/uom](https://github.com/TinyGearsOrg/uom/security/advisories/new), or by email to the
-maintainer, Thomas Neidhart (thomas.neidhart@gmail.com). Include the version, a minimal reproduction and the impact you
+[TinyGearsOrg/uom](https://github.com/TinyGearsOrg/uom/security/advisories/new), or by email to
+[security@tinygears.org](mailto:security@tinygears.org). Include the version, a minimal reproduction and the impact you
 see. Reports are answered on a best-effort basis; a fix is released before the details are published.
 
 ## Java serialization
