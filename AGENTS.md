@@ -49,8 +49,8 @@ conflicts with an explicit request from the user, ask before overriding it.
   that says why.
 - Keep code comments short (1 to 3 lines): state only the non-obvious constraint or rationale, never narrate what the
   code does. Do not recount what a line used to do; the history belongs in the commit message.
-- Ask before removing functionality or code that appears intentional. Nothing is released yet, so backward
-  compatibility is not required unless the user asks for it; from 1.0, semantic versioning applies
+- Ask before removing functionality or code that appears intentional. The `0.x` releases may change the API, so
+  backward compatibility is not required unless the user asks for it; from 1.0, semantic versioning applies
   ([docs/DESIGN.md](docs/DESIGN.md), section 8).
 - A design decision gets a decision record in [docs/DESIGN.md](docs/DESIGN.md) section 9 (`DR-nn`: decision, why,
   rejected, revisit if). Open work is tracked in the GitHub issues of `TinyGearsOrg/uom`, not in a document.
