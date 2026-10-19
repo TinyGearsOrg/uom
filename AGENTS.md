@@ -37,7 +37,6 @@ conflicts with an explicit request from the user, ask before overriding it.
   `units` block loads with both. Keep them true when behaviour changes.
 - The output of `uom-examples` is pinned twice: `ExamplesTest` and `scripts/consumer/expected-output.txt`, which
   `scripts/verify-release.sh` compares. Update both.
-- The README status paragraph states the test counts per module; update them when they change.
 
 ## Workflow and code quality
 

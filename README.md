@@ -21,12 +21,6 @@ uom is a Java library for typed quantities and units of measurement with two API
 with units typed by its quantity types and typed products, and `uom-jsr`, a JSR-385 implementation (`javax.measure`,
 unit-api 2.2). Units convert exactly (rationals, powers of pi and roots); values are `double` or exact `BigDecimal`.
 
-**Status:** released, version 0.1.0. Both APIs have typed `double` and `BigDecimal` quantities for all 33 quantity
-types, eight catalogs (`SI`, `USCustomary`, `Imperial`, `CGS`, `ESU`, `EMU`, `Gaussian`, `Information`; listed in
-[docs/UNITS.md](docs/UNITS.md)), unit and quantity formats, user `.units` files and serialization. The JSR-385 TCK
-(`unit-tck` 2.2) passes 113 of 113 tests; `mvn -q -B clean verify` runs 1359 tests (engine 70, uom 24, uom-jsr 899,
-codegen 188, tck 113, examples 65), in CI on JDK 17, 21 and 25.
-
 ## Five minutes
 
 ```java
