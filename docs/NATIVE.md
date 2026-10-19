@@ -58,6 +58,16 @@ Untyped momentum = Mass.of(2, SI.KILOGRAM).multiply(Speed.of(3, SI.METRE_PER_SEC
 System.out.println(momentum);                                       // prints: 6.0 kg·m/s
 ```
 
+An `Untyped` product is labelled with its atoms. `as` takes the system unit of the type where the unit is equal to it,
+so the label becomes the name; an equivalent unit is another unit and stays (`1/s` is not `Hz`):
+
+```java
+Untyped force = Untyped.of(3, SI.NEWTON.asType(Untyped.class));
+Untyped untypedWork = force.multiply(Untyped.of(2, SI.METRE.asType(Untyped.class)));
+System.out.println(untypedWork);                                    // prints: 6.0 kg·m^2/s^2
+System.out.println(untypedWork.as(Energy.class));                   // prints: 6.0 J
+```
+
 ## Units
 
 A unit is a product of atoms (the seven SI base units and the alternate units such as `rad`, `Hz`, `bit`) with an exact

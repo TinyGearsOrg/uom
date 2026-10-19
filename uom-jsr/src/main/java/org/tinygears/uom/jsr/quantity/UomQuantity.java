@@ -18,6 +18,7 @@ import javax.measure.Quantity;
 import javax.measure.Unit;
 import javax.measure.spi.SystemOfUnits;
 
+import org.tinygears.uom.jsr.Jsr;
 import org.tinygears.uom.jsr.UomUnit;
 
 /**
@@ -156,7 +157,9 @@ public interface UomQuantity<Q extends Quantity<Q>, R extends UomQuantity<Q, R>>
     /**
      * This quantity as the typed interface {@code type} of this library, such as {@code Speed} for the quotient of
      * a length and a time: this quantity if it already is one, else a quantity of {@code type} with the same value,
-     * unit, scale and context, created as {@link #asType(Class)} creates it (by dimension).
+     * unit, scale and context, created as {@link #asType(Class)} creates it (by dimension). A unit equal to the
+     * system unit of the type is replaced by it, so a product labelled {@code kg·m^2/s^2} becomes {@code J} as an
+     * {@code Energy}; {@code asType} keeps the unit.
      *
      * <p>{@link #asType(Class)}, the standard method, takes the standard interface ({@code
      * javax.measure.quantity.Speed}) and returns a {@code Quantity<Speed>}, so getting this library's {@code Speed}
@@ -184,7 +187,18 @@ public interface UomQuantity<Q extends Quantity<Q>, R extends UomQuantity<Q, R>>
         if (!type.isInstance(narrowed)) {
             throw new ClassCastException(narrowed.getClass().getName() + " is not a " + type.getName());
         }
-        return type.cast(narrowed);
+        return type.cast(named(narrowed));
+    }
+
+    // An equal unit takes the label of the system unit of its type (J for kg·m^2/s^2); 1/s is not Hz, so it stays.
+    @SuppressWarnings({ "unchecked", "rawtypes" }) // the converted quantity has the unit's own type
+    private static Quantity<?> named(Quantity<?> quantity) {
+        org.tinygears.uom.Unit<?> unit = Jsr.fromJsr(quantity.getUnit());
+        org.tinygears.uom.Unit<?> system = org.tinygears.uom.quantity.QuantityTypes.systemUnit(unit.type());
+        if (system == null || !system.equals(unit) || system.symbol().equals(unit.symbol())) {
+            return quantity;
+        }
+        return quantity.to((javax.measure.Unit) Jsr.toJsr(system));
     }
 
     /** The {@code S} of {@code type}'s {@code UomQuantity<S, type>}, raw: the type token asType takes. */

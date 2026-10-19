@@ -284,9 +284,16 @@ public abstract class AbstractQuantity<Q extends Quantity<Q>> implements Quantit
         if (type.isInstance(this)) {
             return type.cast(this);
         }
-        Unit<T> u = unit.asType(type);
+        Unit<T> u = named(unit.asType(type), type);
         Factory<T> f = type == Untyped.class ? untyped() : QuantityTypes.factory(type);
         return f.create(value, decimal, mathContext, u, scale);
+    }
+
+    // An equal unit takes the label of the system unit (J for kg·m^2/s^2); an equivalent one (1/s for Hz) is another unit.
+    @SuppressWarnings("unchecked") // the system unit of type is a Unit<T>
+    private static <T extends Quantity<T>> Unit<T> named(Unit<T> u, Class<T> type) {
+        Unit<?> system = QuantityTypes.systemUnit(type);
+        return system != null && system.equals(u) ? (Unit<T>) system : u;
     }
 
     // T is Untyped, so the factory of UntypedValue is one of T.

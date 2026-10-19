@@ -21,11 +21,13 @@ import org.tinygears.uom.engine.UnitAtom;
 import org.tinygears.uom.quantity.Area;
 import org.tinygears.uom.quantity.Energy;
 import org.tinygears.uom.quantity.Force;
+import org.tinygears.uom.quantity.Frequency;
 import org.tinygears.uom.quantity.Length;
 import org.tinygears.uom.quantity.Mass;
 import org.tinygears.uom.quantity.Power;
 import org.tinygears.uom.quantity.Pressure;
 import org.tinygears.uom.quantity.QuantityTypes;
+import org.tinygears.uom.quantity.Radioactivity;
 import org.tinygears.uom.quantity.Speed;
 import org.tinygears.uom.quantity.Temperature;
 import org.tinygears.uom.quantity.Time;
@@ -257,5 +259,47 @@ class NativeQuantityTest {
     void noJsr385TypeIsReachable() {
         // the module depends on the engine only: unit-api is not even on the class path
         assertThrows(ClassNotFoundException.class, () -> Class.forName("javax.measure.Unit"));
+    }
+
+    @Test
+    void asTakesTheSystemUnitOfTheTypeWhereTheUnitIsEqual() {
+        Untyped force = Untyped.of(3, SI.KILONEWTON.asType(Untyped.class));
+        Untyped product = force.multiply(Untyped.of(2, SI.METRE.asType(Untyped.class)));
+        assertEquals("6000.0 kg·m^2/s^2", product.toString());
+        assertEquals("6000.0 J", product.as(Energy.class).toString());
+        assertEquals(Force.of(3, SI.KILONEWTON).multiply(Length.of(2, SI.METRE)), product.as(Energy.class));
+        assertEquals("6000.0 J", QuantityFormat.standard().format(product.as(Energy.class)));
+        Untyped area = Untyped.of(2, SI.METRE.asType(Untyped.class))
+                .multiply(Untyped.of(2, SI.METRE.asType(Untyped.class)));
+        assertEquals("4.0 m²", area.as(Area.class).toString());
+        assertEquals(
+                "1.0 W",
+                Untyped.of(1, SI.NEWTON.asType(Untyped.class))
+                        .multiply(Untyped.of(1, SI.METRE_PER_SECOND.asType(Untyped.class))).as(Power.class).toString());
+    }
+
+    @Test
+    void asKeepsAnEquivalentUnitThatIsNotTheSystemUnit() {
+        Untyped perSecond = Untyped.of(2, SI.SECOND.asType(Untyped.class)).inverse();
+        assertEquals("0.5 1/s", perSecond.as(Frequency.class).toString());
+        assertEquals("0.5 1/s", perSecond.as(Radioactivity.class).toString());
+        // a unit that is not the system unit of the type is kept
+        assertEquals("3.0 km", Untyped.of(3, SI.KILOMETRE.asType(Untyped.class)).as(Length.class).toString());
+    }
+
+    @Test
+    void asKeepsTheValueScaleAndDecimalContext() {
+        Untyped product = Untyped
+                .of(new BigDecimal("1.50"), SI.NEWTON.asType(Untyped.class), Scale.ABSOLUTE, MathContext.DECIMAL64)
+                .multiply(
+                        Untyped.of(
+                                new BigDecimal("2"),
+                                SI.METRE.asType(Untyped.class),
+                                Scale.ABSOLUTE,
+                                MathContext.DECIMAL64));
+        Energy energy = product.as(Energy.class);
+        assertEquals("3.00 J", energy.toString());
+        assertEquals(MathContext.DECIMAL64, energy.mathContext());
+        assertEquals(Scale.ABSOLUTE, energy.scale());
     }
 }

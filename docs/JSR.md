@@ -69,6 +69,9 @@ System.out.println(momentum);                                          // prints
 System.out.println(Untyped.of(5, SI.METRE).as(Length.class));          // prints: 5.0 m
 ```
 
+A product of untyped quantities is labelled with its atoms (`kg·m^2/s^2`). `as` takes the system unit of the type where
+the unit is equal to it (`J` as an `Energy`); an equivalent unit stays (`1/s` is not `Hz`), and `asType` keeps the unit.
+
 A quantity whose static type is the standard `Quantity<?>`, such as one from code written against JSR-385 only, is
 narrowed with `X.from`: `Speed.from(quantity)` narrows the same way, returns a quantity of this implementation as it is,
 and refuses one of another implementation with a `ClassCastException`. `asType` on units and quantities goes by
