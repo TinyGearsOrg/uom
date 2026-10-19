@@ -58,6 +58,17 @@ System.out.println(degrees.isEquivalentTo(Angle.of(BigDecimal.ONE, SI.RADIAN)));
 System.out.println(degrees.isCloseTo(Angle.of(BigDecimal.ONE, SI.RADIAN), 1e-30)); // prints: true
 ```
 
+A quantity in a unit of any dimension has no standard type: a momentum, a gradient. `Untyped.of` makes one, as `Length.of`
+makes a `Length`, in the same five forms (a `double` or a `BigDecimal`, with a `Scale` and a `MathContext`); a unit of
+another implementation is refused with `UnconvertibleException`. `as` and `X.from` narrow it when its dimension has a
+type:
+
+```java jsr
+var momentum = Untyped.of(6, SI.KILOGRAM.multiply(SI.METRE).divide(SI.SECOND));
+System.out.println(momentum);                                          // prints: 6.0 kg·m/s
+System.out.println(Untyped.of(5, SI.METRE).as(Length.class));          // prints: 5.0 m
+```
+
 A quantity whose static type is the standard `Quantity<?>`, such as one from code written against JSR-385 only, is
 narrowed with `X.from`: `Speed.from(quantity)` narrows the same way, returns a quantity of this implementation as it is,
 and refuses one of another implementation with a `ClassCastException`. `asType` on units and quantities goes by
@@ -68,6 +79,16 @@ dimension, as the JSR-385 Javadoc says: `Hz`, `Bq` and `1/s` are units of `Frequ
 The native and the JSR-385 quantities share their engine units, so `Jsr` converts between them without converting the
 value: `Jsr.toJsr(length)` (or `Jsr.toJsr(length, org.tinygears.uom.jsr.quantity.Length.class)`) and
 `Jsr.fromJsr(quantity, Length.class)` keep value, number type, context and scale.
+
+`Jsr` has no method for units. A unit converts through a quantity of one: `Untyped.of(1, unit)` is a quantity in a unit
+of any dimension of `uom-jsr`, and `Jsr.fromJsr` gives the native one, whose `unit()` is the native unit. The other way,
+`Jsr.toJsr(nativeQuantity).getUnit()` is the unit of `uom-jsr`.
+
+```java jsr
+import org.tinygears.uom.jsr.Jsr;
+var nativeUnit = Jsr.fromJsr(Untyped.of(1, SI.KILOGRAM.multiply(SI.METRE)), org.tinygears.uom.Untyped.class).unit();
+System.out.println(org.tinygears.uom.UnitFormat.standard().format(nativeUnit));   // prints: kg·m
+```
 
 ## The service provider
 
