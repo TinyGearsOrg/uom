@@ -30,9 +30,9 @@ import org.tinygears.uom.jsr.quantity.UntypedDoubleQuantity;
 import org.tinygears.uom.jsr.quantity.UomQuantity;
 
 /**
- * Converts between the native quantities and the JSR-385 quantities of uom. Both sides wrap the same engine units, so
- * a conversion copies the value, its number type, scale and context, and wraps the unit; nothing is converted or
- * rounded. A native type maps to the JSR-385 type of the same name ({@code Length} to
+ * Converts between the native quantities and units and the JSR-385 quantities and units of uom. Both sides wrap the same
+ * engine units, so a conversion copies the value, its number type, scale and context, and wraps the unit; nothing is
+ * converted or rounded. A native type maps to the JSR-385 type of the same name ({@code Length} to
  * {@code javax.measure.quantity.Length}), {@link Untyped} to an untyped quantity. A decimal of another
  * implementation's quantity has no context and counts as unlimited.
  */
@@ -104,6 +104,36 @@ public final class Jsr {
                 ? Untyped.of(d, unit, scale, context(quantity))
                 : Untyped.of(quantity.getValue().doubleValue(), unit, scale);
         return q.as(type);
+    }
+
+    /**
+     * The JSR-385 unit of a native one: the unit of this implementation over the same engine unit, with its symbol and
+     * name.
+     *
+     * @param unit the native unit
+     * @return the JSR-385 unit
+     */
+    public static UomUnit<?> toJsr(Unit<?> unit) {
+        return UomUnit.of(Units.engine(Objects.requireNonNull(unit, "unit")));
+    }
+
+    /**
+     * The native unit of a JSR-385 one of this implementation, of the native type of its dimension, as a parsed unit has
+     * it ({@code Length} for {@code km}); {@link Untyped} where the dimension has no type.
+     *
+     * @param unit the JSR-385 unit
+     * @return the native unit
+     * @throws IllegalArgumentException if the unit is of another implementation
+     */
+    public static Unit<?> fromJsr(javax.measure.Unit<?> unit) {
+        Unit<Untyped> untyped = Units.of(Untyped.class, engine(Objects.requireNonNull(unit, "unit")));
+        Class<?> type = org.tinygears.uom.quantity.QuantityTypes.typeOf(untyped);
+        return type == null ? untyped : asType(untyped, type);
+    }
+
+    @SuppressWarnings("unchecked") // the type is a quantity type, so it is a type of itself
+    private static <T extends Quantity<T>> Unit<?> asType(Unit<Untyped> unit, Class<?> type) {
+        return unit.asType((Class<T>) type);
     }
 
     private static MathContext context(javax.measure.Quantity<?> q) {
