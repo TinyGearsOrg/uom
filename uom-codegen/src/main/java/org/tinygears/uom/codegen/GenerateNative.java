@@ -108,9 +108,6 @@ public final class GenerateNative {
                                 c,
                                 parsed.get(file),
                                 file.equals(Generate.CATALOGS.get(0)) ? unnamed : List.of())));
-        JavaFormatter formatter = Generate.formatter(dataDir);
-        files.replaceAll(formatter::format);
-        systems.replaceAll(formatter::format);
         return new Output(Collections.unmodifiableMap(files), Collections.unmodifiableMap(systems));
     }
 }

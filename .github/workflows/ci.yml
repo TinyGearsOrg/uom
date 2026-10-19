@@ -50,6 +50,7 @@ jobs:
           distribution: temurin
           java-version: 21
       - run: mvn -B -Pgenerate -pl uom-codegen -am process-classes
+      - run: mvn -B spotless:apply
       # untracked files count as drift too
       - run: git diff --exit-code && test -z "$(git status --porcelain)"
 

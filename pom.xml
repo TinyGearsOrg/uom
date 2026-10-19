@@ -193,7 +193,7 @@
                 <file>${maven.multiModuleProjectDirectory}/config/import-order.importorder</file>
               </importOrder>
               <eclipse>
-                <!-- the formatter version; spotless-lib-extra pins its dependencies in a lockfile -->
+                <!-- the formatter version; it formats the generated sources too (docs/DESIGN.md, DR-28) -->
                 <version>4.40</version>
                 <file>${maven.multiModuleProjectDirectory}/config/eclipse-java-formatter.xml</file>
               </eclipse>

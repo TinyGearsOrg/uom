@@ -29,7 +29,8 @@ repos:
       files: \.java$|^config/(eclipse-java-formatter\.xml|import-order\.importorder|license-header\.txt)$
     - id: generated
       name: generated sources (regenerate from data/)
-      entry: mvn -q -B -Pgenerate -pl uom-codegen -am process-classes
+      # the generator writes unformatted Java and Spotless formats it: one entry, or the hook would always change files
+      entry: bash -c "mvn -q -B -Pgenerate -pl uom-codegen -am process-classes && mvn -q -B spotless:apply"
       language: system
       pass_filenames: false
       files: ^(data/|config/|uom-engine/src/main/|uom-codegen/src/main/|uom(-jsr)?/src/main/java/org/tinygears/uom/(jsr/)?(quantity|systems)/|docs/UNITS\.md$)

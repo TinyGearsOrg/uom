@@ -110,8 +110,8 @@ public final class Generate {
     }
 
     /**
-     * The files generated from {@code dataDir}; the Java sources are formatted with the Eclipse profile
-     * {@code config/eclipse-java-formatter.xml} next to {@code dataDir}, as Spotless formats the hand-written ones.
+     * The files generated from {@code dataDir}. The Java sources are not formatted: Spotless formats them, as it formats
+     * the hand-written ones, so compare them with {@link #sameCode} and not with {@code equals}.
      */
     public static Output generate(Path dataDir) {
         Map<String, Definitions> parsed = catalogs(dataDir);
@@ -134,10 +134,6 @@ public final class Generate {
                         c.className() + ".java",
                         CatalogEmitter
                                 .catalog(c, parsed.get(file), file.equals(CATALOGS.get(0)) ? unnamed : List.of())));
-        // Formatted as Spotless formats the hand-written sources, so a generated file is also formatted.
-        JavaFormatter formatter = formatter(dataDir);
-        files.replaceAll(formatter::format);
-        systems.replaceAll(formatter::format);
         return new Output(
                 Collections.unmodifiableMap(files),
                 Collections.unmodifiableMap(systems),
@@ -167,12 +163,6 @@ public final class Generate {
         return specs;
     }
 
-    /** {@code config/eclipse-java-formatter.xml} next to {@code dataDir}, the profile Spotless formats with. */
-    static JavaFormatter formatter(Path dataDir) {
-        return new JavaFormatter(
-                dataDir.toAbsolutePath().normalize().resolveSibling("config").resolve("eclipse-java-formatter.xml"));
-    }
-
     static Definitions parse(Path dataDir, String file) {
         try (Reader in = open(dataDir, file)) {
             return DefinitionParser.parse(file, in, name -> open(dataDir, name));
@@ -194,7 +184,7 @@ public final class Generate {
             Path p = outDir.resolve(f.getKey());
             if (!Files.isRegularFile(p)) {
                 problems.add("missing: " + p);
-            } else if (!Files.readString(p, StandardCharsets.UTF_8).equals(f.getValue())) {
+            } else if (!same(f.getKey(), f.getValue(), Files.readString(p, StandardCharsets.UTF_8))) {
                 problems.add("differs: " + p);
             }
         }
@@ -202,6 +192,23 @@ public final class Generate {
             problems.add("stale: " + p);
         }
         return problems;
+    }
+
+    /** A Java source is the same if it differs only in whitespace, which is Spotless's to decide; a document must be equal. */
+    private static boolean same(String name, String generated, String committed) {
+        return name.endsWith(".java") ? sameCode(generated, committed) : generated.equals(committed);
+    }
+
+    /**
+     * Whether two Java sources agree in everything but whitespace. The generator does not format its output, Spotless
+     * does, so a committed file and a fresh generation differ in layout only.
+     */
+    static boolean sameCode(String generated, String committed) {
+        return withoutWhitespace(generated).equals(withoutWhitespace(committed));
+    }
+
+    private static String withoutWhitespace(String text) {
+        return text.replaceAll("\\s+", "");
     }
 
     /** A target that exists and is not generated-looking is hand-written and must not be overwritten. */
