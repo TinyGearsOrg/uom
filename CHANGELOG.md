@@ -9,6 +9,8 @@ the project follows [semantic versioning](https://semver.org/) from 1.0.0 (see [
 
 - `Untyped.of` in `uom-jsr`: the five factories of the typed interfaces (a `double` or a `BigDecimal`, with a `Scale` and
   a `MathContext`) for a quantity in a unit of any dimension ([docs/JSR.md](docs/JSR.md)).
+- `Jsr.toJsr(Unit)` and `Jsr.fromJsr(javax.measure.Unit)`: convert a unit between the native and the JSR-385 API over the
+  same engine unit; the native unit has the native type of its dimension ([docs/JSR.md](docs/JSR.md)).
 
 ## [0.1.0] - 2026-10-18
 

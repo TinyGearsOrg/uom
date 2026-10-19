@@ -989,6 +989,8 @@ org.tinygears.uom.jsr Converters member public static org.tinygears.uom.jsr.UomC
 org.tinygears.uom.jsr Converters type public final class org.tinygears.uom.jsr.Converters
 org.tinygears.uom.jsr Jsr member public static <Q extends org.tinygears.uom.Quantity<Q>> Q fromJsr(javax.measure.Quantity<?>,java.lang.Class<Q>)
 org.tinygears.uom.jsr Jsr member public static <T extends org.tinygears.uom.jsr.quantity.UomQuantity<?, T>> T toJsr(org.tinygears.uom.Quantity<?>,java.lang.Class<T>)
+org.tinygears.uom.jsr Jsr member public static org.tinygears.uom.Unit<?> fromJsr(javax.measure.Unit<?>)
+org.tinygears.uom.jsr Jsr member public static org.tinygears.uom.jsr.UomUnit<?> toJsr(org.tinygears.uom.Unit<?>)
 org.tinygears.uom.jsr Jsr member public static org.tinygears.uom.jsr.quantity.UomQuantity<?, ?> toJsr(org.tinygears.uom.Quantity<?>)
 org.tinygears.uom.jsr Jsr type public final class org.tinygears.uom.jsr.Jsr
 org.tinygears.uom.jsr UomConverter member public abstract java.math.BigDecimal convert(java.math.BigDecimal,java.math.MathContext)

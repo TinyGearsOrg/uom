@@ -80,14 +80,16 @@ The native and the JSR-385 quantities share their engine units, so `Jsr` convert
 value: `Jsr.toJsr(length)` (or `Jsr.toJsr(length, org.tinygears.uom.jsr.quantity.Length.class)`) and
 `Jsr.fromJsr(quantity, Length.class)` keep value, number type, context and scale.
 
-`Jsr` has no method for units. A unit converts through a quantity of one: `Untyped.of(1, unit)` is a quantity in a unit
-of any dimension of `uom-jsr`, and `Jsr.fromJsr` gives the native one, whose `unit()` is the native unit. The other way,
-`Jsr.toJsr(nativeQuantity).getUnit()` is the unit of `uom-jsr`.
+Units convert too: `Jsr.fromJsr(unit)` is the native unit of a unit of `uom-jsr`, of the native type of its dimension
+(`Length` for `km`, `Untyped` where no type has the dimension, as a parsed unit has it), and `Jsr.toJsr(nativeUnit)` is the
+unit of `uom-jsr` over the same engine unit, with its symbol and name. A unit of another implementation is refused with an
+`IllegalArgumentException`, as a quantity of another implementation is.
 
 ```java jsr
 import org.tinygears.uom.jsr.Jsr;
-var nativeUnit = Jsr.fromJsr(Untyped.of(1, SI.KILOGRAM.multiply(SI.METRE)), org.tinygears.uom.Untyped.class).unit();
-System.out.println(org.tinygears.uom.UnitFormat.standard().format(nativeUnit));   // prints: kg·m
+var kilogramMetre = Jsr.fromJsr(SI.KILOGRAM.multiply(SI.METRE));        // a native Unit
+System.out.println(org.tinygears.uom.UnitFormat.standard().format(kilogramMetre)); // prints: kg·m
+System.out.println(Jsr.toJsr(org.tinygears.uom.systems.SI.KILOMETRE).equals(SI.KILOMETRE)); // prints: true
 ```
 
 ## The service provider

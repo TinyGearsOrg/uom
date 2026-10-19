@@ -308,7 +308,8 @@ serialized form may change before 1.0. Systems and formats are not serializable.
 ## JSR-385
 
 `uom-jsr` implements JSR-385 on the same engine; `Jsr.toJsr(length)` and `Jsr.fromJsr(quantity, Length.class)` convert
-between the two APIs without converting the value ([JSR.md](JSR.md)).
+between the two APIs without converting the value, and `Jsr.toJsr(unit)` and `Jsr.fromJsr(unit)` convert the units
+([JSR.md](JSR.md)).
 
 ## Not included
 
