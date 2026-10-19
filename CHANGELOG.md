@@ -5,6 +5,11 @@ the project follows [semantic versioning](https://semver.org/) from 1.0.0 (see [
 
 ## [Unreleased]
 
+### Changed
+
+- `as(Type.class)` on a quantity takes the system unit of the type where its unit is equal to it, so an `Untyped`
+  product labelled `kg·m^2/s^2` is `J` as an `Energy`; in `uom-jsr` `as` does it and `asType` keeps the unit.
+
 ### Added
 
 - `QuantityFormat.with(SystemOfUnits...)` and `UomQuantityFormat.with(UomSystemOfUnits...)`: add systems to the unit

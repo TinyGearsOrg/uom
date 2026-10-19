@@ -149,7 +149,8 @@ public interface Quantity<Q extends Quantity<Q>> extends Comparable<Q> {
 
     /**
      * This quantity as the quantity type {@code type}: itself if it is one, else one with the same value, unit, scale
-     * and context.
+     * and context. A unit equal to the system unit of {@code type} is replaced by it, so a product labelled
+     * {@code kg·m^2/s^2} becomes {@code J} as an {@code Energy}.
      *
      * @param <T> the quantity type
      * @param type the quantity type, such as {@code Speed.class}

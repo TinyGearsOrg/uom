@@ -93,4 +93,29 @@ class AsTypeDimensionTest {
                 new BigDecimal("6").compareTo(
                         (BigDecimal) arc.asType(javax.measure.quantity.Length.class).to(SI.METRE).getValue()));
     }
+
+    @Test
+    void asTakesTheSystemUnitOfTheTypeWhereTheUnitIsEqual() {
+        Quantity<?> product = Untyped.of(3, SI.KILONEWTON).multiply(Untyped.of(2, SI.METRE));
+        assertEquals("6000.0 kg·m^2/s^2", product.toString());
+        Energy energy = ((UomQuantity<?, ?>) product).as(Energy.class);
+        assertEquals("6000.0 J", energy.toString());
+        assertEquals(
+                "6000.0 kg·m^2/s^2",
+                ((UomQuantity<?, ?>) product).asType(javax.measure.quantity.Energy.class).toString());
+        UomQuantity<?, ?> perSecond = (UomQuantity<?, ?>) Untyped.of(2, SI.SECOND).inverse();
+        assertEquals("0.5 1/s", perSecond.as(Frequency.class).toString());
+        assertEquals("3.0 km", Untyped.of(3, SI.KILOMETRE).as(Length.class).toString());
+    }
+
+    @Test
+    void asKeepsTheDecimalContext() {
+        UomQuantity<?, ?> product = (UomQuantity<?, ?>) Untyped.of(new BigDecimal("1.50"), SI.NEWTON)
+                .multiply(Untyped.of(new BigDecimal("2"), SI.METRE));
+        Energy energy = product.as(Energy.class);
+        assertEquals("3.00 J", energy.toString());
+        assertEquals(
+                ((AbstractDecimalQuantity<?, ?>) product).mathContext(),
+                ((AbstractDecimalQuantity<?, ?>) energy).mathContext());
+    }
 }
